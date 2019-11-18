@@ -1,0 +1,326 @@
+---
+title: "Study 1"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    # theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we analyze Study 1: In-depth interviews with people of faith.
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+source("../../scripts_general/var_recode_contrast.R")
+```
+
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+d1 <- read_csv("../data/study1.csv") %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher))
+```
+
+```{r}
+contrasts(d1$country) <- contrasts_country; contrasts(d1$country)
+contrasts(d1$site) <- contrasts_site; contrasts(d1$site)
+contrasts(d1$religion) <- contrasts_religion; contrasts(d1$religion)
+```
+
+
+# Demographics
+
+```{r}
+# all participants included in dataset
+d1 %>% count()
+```
+
+```{r}
+# participants missing porosity vignettes score
+d1 %>% filter(is.na(por_score_std)) %>% count()
+
+# participants missing absorption score
+d1 %>% filter(is.na(abs_score_std)) %>% count()
+
+# participants missing spiritual experiences score
+d1 %>% filter(is.na(spirit_score_std)) %>% count()
+
+# participants with complete data for primary analysis
+d1 %>% filter(!is.na(por_score_std),
+              !is.na(abs_score_std),
+              !is.na(spirit_score_std)) %>% count()
+```
+
+```{r}
+d1_demo <- d1 %>% select(-contains("score")) %>% 
+  mutate(male = ifelse(grepl("male", tolower(subject_gender)) &
+                         !grepl("female", tolower(subject_gender)), 1, 0),
+         female = ifelse(grepl("female", tolower(subject_gender)), 1, 0),
+         subject_age = ifelse(subject_age > 120, NA_real_, subject_age),
+         subject_hs = ifelse(grepl("yes", tolower(subject_hs)), 1, 0),
+         servicesperweek = case_when(
+           servicesperweek %in% c("Everyday", "Daily", "Daily Home Practice",
+                                  "7 Days", "At Temple Daily",
+                                  "7days A Week",
+                                  "All Day Everyday", "Daily",
+                                  "Staff, Daily") ~ 7,
+           servicesperweek %in% c("At Church Almost Every Day", "6+",
+                                  "Six") ~ 6,
+           servicesperweek == "	O / Teaches At Temple Though So 5x" ~ 5,
+           servicesperweek %in% c("Sunday, 2 Youth Meetings",
+                                  "Youth Mon&sat, Friday",
+                                  "Sunday Plus Several Meetings",
+                                  "Many Days", "3 Times") ~ 3,
+           servicesperweek %in% c("2+", "Sunday, Evening Devotion",
+                                  "Sunday, Youth Meetings",
+                                  "Sunday, Weds", "Twice",
+                                  "Sunday, Pastors Unity",
+                                  "Twice A Week",
+                                  "Sunday, Saturday Prayer Breakfast",
+                                  "Every Wik, Youth, Pwmu",
+                                  "Sunday, Evening Devotion",
+                                  "Sunday, Youth", "2 Times",
+                                  "2 Inc Women", "	2 Home Group And Church",
+                                  "2 Or More", "Several", "At Leqst 2",
+                                  "Now Less, Peak 3x Week", "Several Times",
+                                  "Mens Fellowship, Youth", "Sunday, Men's,",
+                                  "Sunday, Meetings") ~ 2,
+           servicesperweek %in% c("2 Or 3", "Sunday, Devotion-2 Or 3",
+                                  "10+/month") ~ 2.5,
+           servicesperweek %in% c("Sunday", "One", 
+                                  "Now More Weekly At Home, Convenience Wat",
+                                  "Once", "Weekly", "1x", "	One Service",
+                                  "Mens Fellowship", "1 Or Less",
+                                  "1, Away At Seminary Now") ~ 1,
+           servicesperweek %in% c("2 X Month Or. 1 X Week",
+                                  "2-3/month", "3x/month") ~ 0.75,
+           servicesperweek %in% c("Every Two Weeks", "2/month",
+                                  "Several Times A Month",
+                                  "2 X/ Month", "2x/month") ~ 0.5,
+           servicesperweek %in% c("1/month", "1/month") ~ 0.25,
+           grepl("twice a week", servicesperweek) ~ 2,
+           grepl("less than", tolower(servicesperweek)) |
+             grepl("irregular", tolower(servicesperweek)) |
+             grepl("rare", tolower(servicesperweek)) |
+             grepl("never", tolower(servicesperweek)) |
+             grepl("year", tolower(servicesperweek)) |
+             grepl("montly", tolower(servicesperweek)) |
+             servicesperweek %in% c("5 X Year", "Not Weekly", 
+                                    "Many Throughout Year",
+                                    "Only When Something To Deal With",
+                                    "Less Than One",
+                                    "4 In A Year", "Special Days",
+                                    "Not Regularly", "Several Times Per Year") ~ 0,
+           as.numeric(servicesperweek) > 3*7 ~ NA_real_,
+           TRUE ~ as.numeric(servicesperweek)
+         ))
+```
+
+```{r}
+d1_demo %>%
+  mutate(site = factor(site, levels = c("urban", "rural"))) %>%
+  group_by(country, site, religion) %>%
+  summarise(n = n(),
+            age_range = paste0(min(subject_age, na.rm = T), "-",
+                               max(subject_age, na.rm = T)),
+            mean_age = mean(subject_age, na.rm = T),
+            percent_male = mean(male, na.rm = T),
+            percent_female = mean(female, na.rm = T),
+            percent_hs = mean(subject_hs, na.rm = T),
+            mean_services = mean(as.numeric(servicesperweek), na.rm = T),
+            percent_special = mean(specialrole, na.rm = T)) %>%
+  ungroup() %>%
+  # mutate_at(vars(starts_with("mean_")), funs(format(round(., 2), nsmall = 2))) %>%
+  mutate_at(vars(starts_with("percent_")),
+            funs(paste0(round(. * 100), "%"))) %>%
+  rename(Country = country, Site = site, Religion = religion,
+         `Age range` = age_range, `Mean age` = mean_age,
+         `% male` = percent_male, `% female` = percent_female,
+         `% attended high school` = percent_hs,
+         `Mean # services attended per week` = mean_services,
+         `% serving a 'special role'` = percent_special) %>%
+  kable(digits = 2, align = c(rep("l", 3), rep("r", 4))) %>%
+  kable_styling(font_size = 16) # %>%
+  # collapse_rows(1:3)
+```
+
+
+# Simple correlations
+
+```{r}
+d1 %>% 
+  select(por_score_std, abs_score_std, spirit_score_std) %>% 
+  cor(use = "pairwise.complete")
+```
+
+```{r}
+cor.test(d1$por_score_std, d1$spirit_score_std)
+```
+
+```{r}
+cor.test(d1$abs_score_std, d1$spirit_score_std)
+```
+
+```{r}
+cor.test(d1$por_score_std, d1$abs_score_std)
+```
+
+
+# Predicting Spiritual Events
+
+## Primary analysis
+
+```{r}
+r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+             (1 | country/site/religion),
+             # (1 | country/religion),
+           data = d1)
+summary(r1)
+```
+
+```{r}
+rsquared(r1)
+```
+
+```{r}
+regtab_fun(r1) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(r1) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(r1)), color = "black")
+```
+
+## Attempting to fit more complex random effects structures
+
+```{r}
+# more complex random effects structures: NOT REPORTED
+r1a <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 + por_score_std * abs_score_std | country/site/religion), 
+            data = d1) # singular, failed to converge
+r1b <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 + por_score_std * abs_score_std || country/site/religion), 
+            data = d1) # singular
+r1c <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 + por_score_std + abs_score_std | country/site/religion), 
+            data = d1) # singular, failed to converge
+r1d <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 + por_score_std + abs_score_std || country/site/religion), 
+            data = d1) # singular
+r1e <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 | country/site/religion) +
+              (0 + por_score_std | country/site/religion) +
+              (0 + abs_score_std | country/site/religion),
+            data = d1) # singular
+r1f <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 | country/site/religion) +
+              (0 + por_score_std | country/site) +
+              (0 + abs_score_std | country/site),
+            data = d1) # singular
+r1g <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 | country/site/religion) +
+              (0 + por_score_std | country) +
+              (0 + abs_score_std | country),
+            data = d1) # overparameterized? only 2-3 dfs left to test main effects
+r1h <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+              (1 | country) +
+              (0 + por_score_std | country) +
+              (0 + abs_score_std | country),
+            data = d1) # singular
+```
+
+## Bayesian regression
+
+```{r}
+# r1_bayes <- brm(spirit_score_std ~ por_score_std * abs_score_std +
+#                   (1 | country/site/religion), d1,
+#                 control = list(adapt_delta = 0.99),
+#                 seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_bayes, "./models/r1_bayes.RDS")
+
+r1_bayes <- readRDS("./models/r1_bayes.RDS")
+
+summary(r1_bayes)
+```
+
+```{r}
+bayes_R2(r1_bayes)
+```
+
+```{r}
+regtab_fun(r1_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1_bayes)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(r1_bayes) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(r1_bayes)), color = "black")
+```
+
+## Country as fixed effect
+
+```{r}
+r2 <- lm(spirit_score_std ~ por_score_std * abs_score_std * country, d1)
+summary(r2)
+```
+
+```{r}
+piecewiseSEM::rsquared(r2)
+```
+
+```{r}
+regtab_fun(r2) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r2)), color = "black")
+```
+
+
+# Predicting Other Extraordinary Events
+
+```{r}
+r3 <- lmer(other_score_std ~ por_score_std * abs_score_std +
+             (1 | country/site/religion),
+             # (1 | country/religion),
+           data = d1)
+summary(r3)
+```
+
+```{r}
+rsquared(r3)
+```
+
+```{r}
+regtab_fun(r3) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r3)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(r3) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(r3)), color = "black")
+```
+

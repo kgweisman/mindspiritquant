@@ -1,0 +1,529 @@
+---
+title: "Study 1: Extra (not reported)"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we conduct additional analyses for Study 1: In-depth interviews with people of faith (not reported in the main text or the Supplemental Information of the paper).
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+source("../../scripts_general/var_recode_contrast.R")
+source("../scripts_s1/s1_var_groups.R")
+```
+
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+d1_byquestion <- read_csv("../data/study1_byquestion.csv") %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher),
+         study = "study 1")
+```
+
+```{r}
+d1 <- read.csv("../data/study1.csv") %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher),
+         study = "study 1")
+```
+
+
+# More on recoding ("QTS2")
+
+```{r}
+d1r_byquestion <- read_csv("../data/study1r_byquestion.csv")
+```
+
+```{r}
+d1r <- read_csv("../data/study1r.csv") %>%
+  rename_at(vars(contains("score")), funs(gsub("score", "recoded", .))) %>%
+  full_join(d1) %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher))
+
+contrasts(d1r$country) <- contrasts_country
+contrasts(d1r$site) <- contrasts_site
+contrasts(d1r$religion) <- contrasts_religion
+```
+
+## Averages, by score
+
+```{r}
+d1r %>% 
+  select(country, subject_id, ends_with("recoded"), ends_with("score")) %>%
+  gather(scale, score, -c(country, subject_id)) %>%
+  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
+                                grepl("score", scale) ~ "original",
+                                TRUE ~ NA_character_),
+         score_type = factor(score_type, levels = c("original", "recoded")),
+         scale = case_when(grepl("spirit", scale) ~ "spiritual experiences",
+                           grepl("other", scale) ~ "other extraordinary experiences",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, levels = c("spiritual experiences", 
+                                          "other extraordinary experiences"))) %>%
+  ggplot(aes(x = scale, y = score, group = score_type)) +
+  # geom_point(aes(color = score_type), alpha = 0.2,
+  #            position = position_jitterdodge(jitter.width = 0.1,
+  #                                            dodge.width = 0.5,
+  #                                            jitter.height = 0.04)) +
+  geom_pointrange(data = . %>%
+                    group_by(scale, score_type) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper, fill = score_type),
+                  position = position_dodge(width = 0.5),
+                  shape = 21, fatten = 6) +
+  labs(title = "Comparing recoded scores (QTS2) to original scores (QTS1)",
+       x = "Scale", y = "Score (range: 0-1)",
+       fill = "Score type")
+```
+
+```{r}
+lmer(score ~ score_type * scale + (1 | subject_id), 
+   data = d1r %>% 
+     select(country, subject_id, ends_with("recoded"), ends_with("score")) %>%
+     gather(scale, score, -c(country, subject_id)) %>%
+     filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+     mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
+                                   grepl("score", scale) ~ "original",
+                                   TRUE ~ NA_character_),
+            score_type = factor(score_type, levels = c("original", "recoded")),
+            scale = case_when(grepl("spirit", scale) ~ "spiritual experiences",
+                              grepl("other", scale) ~ "other extraordinary experiences",
+                              TRUE ~ NA_character_),
+            scale = factor(scale, levels = c("spiritual experiences", 
+                                             "other extraordinary experiences"))),
+   contrasts = list(score_type = "contr.sum", scale = "contr.sum")) %>%
+  summary()
+```
+
+```{r}
+d1r %>% 
+  select(country, subject_id, ends_with("recoded"), ends_with("score")) %>%
+  gather(scale, score, -c(country, subject_id)) %>%
+  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
+                                grepl("score", scale) ~ "original",
+                                TRUE ~ NA_character_),
+         score_type = factor(score_type, levels = c("original", "recoded")),
+         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+                           grepl("other", scale) ~ "other exp.",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, levels = c("spiritual exp.", 
+                                          "other exp."))) %>%
+  ggplot(aes(x = scale, y = score, group = score_type)) +
+  facet_grid(~ country) +
+  # geom_point(aes(color = score_type), alpha = 0.2,
+  #            position = position_jitterdodge(jitter.width = 0.1,
+  #                                            dodge.width = 0.5,
+  #                                            jitter.height = 0.04)) +
+  geom_pointrange(data = . %>%
+                    group_by(scale, score_type, country) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper, fill = score_type),
+                  position = position_dodge(width = 0.5),
+                  shape = 21, fatten = 6) +
+  labs(title = "Comparing recoded scores (QTS2) to original scores (QTS1)",
+       x = "Scale", y = "Score (range: 0-1)",
+       fill = "Score type") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r, fig.width = 6, fig.asp = 0.8}
+d1r %>% 
+  select(country, site, religion, subject_id, 
+         ends_with("recoded"), ends_with("score")) %>%
+  gather(scale, score, -c(country, site, religion, subject_id)) %>%
+  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
+                                grepl("score", scale) ~ "original",
+                                TRUE ~ NA_character_),
+         score_type = factor(score_type, levels = c("original", "recoded")),
+         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+                           grepl("other", scale) ~ "other exp.",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, levels = c("spiritual exp.", 
+                                          "other exp."))) %>%
+  ggplot(aes(x = scale, y = score, group = score_type)) +
+  facet_grid(rows = vars(site, religion), cols = vars(country)) +
+  geom_point(aes(color = score_type), alpha = 0.2,
+             position = position_jitterdodge(jitter.width = 0.1,
+                                             dodge.width = 0.5,
+                                             jitter.height = 0.04)) +
+  geom_pointrange(data = . %>%
+                    group_by(scale, score_type, country, site, religion) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper, fill = score_type),
+                  position = position_dodge(width = 0.5),
+                  shape = 21, fatten = 6) +
+  labs(title = "Comparing recoded scores (QTS2) to original scores (QTS1)",
+       x = "Scale", y = "Score (range: 0-1)",
+       fill = "Score type", color = "Score type") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r}
+d1r %>% 
+  select(country, subject_id, coder, ends_with("recoded")) %>%
+  gather(scale, score, -c(country, subject_id, coder)) %>%
+  mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
+                                grepl("score", scale) ~ "original",
+                                TRUE ~ NA_character_),
+         score_type = factor(score_type, levels = c("original", "recoded")),
+         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+                           grepl("other", scale) ~ "other exp.",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, levels = c("spiritual exp.", 
+                                          "other exp."))) %>%
+  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  ggplot(aes(x = scale, y = score, group = coder)) +
+  facet_grid(~ country) +
+  geom_point(aes(color = coder), alpha = 0.2,
+             position = position_jitterdodge(jitter.width = 0.1,
+                                             dodge.width = 0.5,
+                                             jitter.height = 0.04)) +
+  geom_pointrange(data = . %>%
+                    group_by(scale, coder, country) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper, fill = coder),
+                  shape = 21, fatten = 5,
+                  position = position_dodge(width = 0.5)) +
+  labs(title = "Comparing coders in recoded dataset (QTS2)",
+       x = "Scale", y = "Score (range: 0-1)", fill = "Coder", color = "Coder") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r}
+lmer(score ~ scale * coder + (1 | subject_id), 
+   data = d1r %>% 
+     select(country, coder, subject_id, ends_with("recoded")) %>%
+     distinct() %>%
+     gather(scale, score, -c(country, subject_id, coder)) %>%
+     filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+     mutate(scale = case_when(grepl("spirit", scale) ~ "spiritual experiences",
+                              grepl("other", scale) ~ "other extraordinary experiences",
+                              TRUE ~ NA_character_),
+            scale = factor(scale, levels = c("spiritual experiences", 
+                                             "other extraordinary experiences")),
+            coder = factor(coder, levels = c("Nikki", "Maria", "Lucy"))),
+   contrasts = list(scale = "contr.sum", 
+                    coder = cbind("_NvGM" = c(1, 0, -1),
+                                  "_MvGM" = c(0, 1, -1)))) %>%
+  summary()
+```
+
+```{r, fig.width = 6, fig.asp = 0.8}
+d1r %>% 
+  select(country, site, religion, subject_id, coder, ends_with("recoded")) %>%
+  gather(scale, score, -c(country, site, religion, subject_id, coder)) %>%
+  mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
+                                grepl("score", scale) ~ "original",
+                                TRUE ~ NA_character_),
+         score_type = factor(score_type, levels = c("original", "recoded")),
+         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+                           grepl("other", scale) ~ "other exp.",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, levels = c("spiritual exp.", 
+                                          "other exp."))) %>%
+  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  ggplot(aes(x = scale, y = score, group = coder)) +
+  facet_grid(rows = vars(site, religion), cols = vars(country)) +
+  geom_point(aes(color = coder), alpha = 0.2,
+             position = position_jitterdodge(jitter.width = 0.1,
+                                             dodge.width = 0.5,
+                                             jitter.height = 0.04)) +
+  geom_pointrange(data = . %>%
+                    group_by(scale, coder, country, site, religion) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper, fill = coder),
+                  shape = 21, fatten = 5,
+                  position = position_dodge(width = 0.5)) +
+  geom_text(data = . %>% count(country, site, religion, coder, scale),
+             aes(y = 0, label = paste0("n=", n), color = coder), 
+            position = position_dodge(width = 1)) +
+  labs(title = "Comparing coders in recoded dataset (QTS2)",
+       x = "Scale", y = "Score (range: 0-1)", fill = "Coder", color = "Coder") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+
+
+## Averages, by question
+
+```{r, fig.width = 6, fig.asp = 0.4}
+d1r_byquestion %>% 
+  select(country, site, religion, subject_id, 
+         !!s1_var_spirit, !!s1_var_other) %>%
+  gather(question, recoded, -c(country, site, religion, subject_id)) %>%
+  full_join(d1_byquestion %>%
+              select(country, site, religion, subject_id, 
+                     !!s1_var_spirit, !!s1_var_other) %>%
+              gather(question, original, -c(country, site, religion, subject_id))) %>%
+  gather(response_type, response, c(original, recoded)) %>%
+  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+         response_type = factor(response_type, levels = c("original", "recoded"))) %>%
+  ggplot(aes(x = question, y = response, group = response_type)) +
+  geom_pointrange(data = . %>%
+                    group_by(question, response_type) %>%
+                    langcog::multi_boot_standard(col = "response", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper,
+                      fill = response_type),
+                  position = position_dodge(width = 0.5),
+                  shape = 21, fatten = 6) +
+  labs(title = "Comparing recoded scores (QTS2) to original scores (QTS1)",
+       x = "Question", y = "Response (range: 0-1)",
+       fill = "Response type") +
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r}
+d1r_byquestion %>% 
+  select(country, site, religion, subject_id, 
+         !!s1_var_spirit, !!s1_var_other) %>%
+  gather(question, recoded, -c(country, site, religion, subject_id)) %>%
+  full_join(d1_byquestion %>%
+              select(country, site, religion, subject_id, 
+                     !!s1_var_spirit, !!s1_var_other) %>%
+              gather(question, original, -c(country, site, religion, subject_id))) %>%
+  gather(response_type, response, c(original, recoded)) %>%
+  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+         response_type = factor(response_type, levels = c("original", "recoded"))) %>%
+  filter(question == "seehearnotgod") %>%
+  count(response_type, response) %>%
+  spread(response, n)
+```
+
+```{r}
+d1r_byquestion %>% 
+  select(country, site, religion, subject_id, 
+         !!s1_var_spirit, !!s1_var_other) %>%
+  gather(question, recoded, -c(country, site, religion, subject_id)) %>%
+  full_join(d1_byquestion %>%
+              select(country, site, religion, subject_id, 
+                     !!s1_var_spirit, !!s1_var_other) %>%
+              gather(question, original, -c(country, site, religion, subject_id))) %>%
+  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other))) %>%
+  filter(question == "seehearnotgod") %>%
+  mutate(match = (original == recoded)) %>%
+  count(match) %>%
+  mutate(prop = n/sum(n))
+```
+
+
+
+
+# Comparing first question to interviewer judgments when available
+
+```{r}
+d1_check_questions <- c("godvoxaloud", "godviavisions", "godviatouch", 
+                        "godviasmell", "neartangiblegod", "presencenotgod", 
+                        "presencedemon", "beingentbody", "seehearnotgod", 
+                        "whitelight", "spiritbeingencounter", "voxwhenalone", 
+                        "seethingscornereye")
+```
+
+```{r}
+d1_check <- d1_byquestion %>% 
+  select(country, subject_id, ends_with("_judge")) %>%
+  gather(question, judgment, -c(country, subject_id)) %>%
+  mutate(question = gsub("_judge", "", question)) %>%
+  full_join(d1_byquestion %>% 
+              select(country, subject_id, !!d1_check_questions) %>%
+              gather(question, response, -c(country, subject_id)))
+
+```
+
+```{r}
+d1_check %>%
+  filter(question %in% d1_check_questions) %>%
+  mutate(agree = (judgment == response),
+         agree = ifelse(is.na(agree), 0, agree)) %>%
+  group_by(question) %>%
+  summarise(percent_agree = mean(agree, na.rm = T)) %>%
+  arrange(percent_agree)
+```
+
+```{r}
+s1_check_icc_df <- data.frame(question = character(), icc = numeric())
+for(i in d1_check_questions){
+  temp_icc <- icc_fun(d1_check, var_name = i, 
+                      res1 = "judgment", res2 = "response", 
+                      which_model = "oneway")
+  temp_res <- data.frame(question = i, icc = temp_icc)
+  s1_check_icc_df <- full_join(s1_check_icc_df, temp_res)
+  rm(temp_res, i)
+}
+
+s1_check_icc_df <- s1_check_icc_df %>%
+  mutate(question = factor(question, levels = d1_check_questions),
+         reliability = case_when(icc < 0.5 ~ "poor",
+                                 icc < 0.75 ~ "moderate",
+                                 icc < 0.9 ~ "good", 
+                                 icc <= 1 ~ "excellent",
+                                 TRUE ~ NA_character_),
+         reliability = factor(reliability, 
+                              levels = c("poor", "moderate", 
+                                         "good", "excellent")),
+         scale = case_when(question %in% s1_var_spirit ~ "spiritual experiences",
+                           question %in% s1_var_other ~ "other experiences",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, 
+                        levels = c("spiritual experiences", "other experiences")))
+```
+
+```{r}
+s1_check_icc_df %>% arrange(icc)
+s1_check_icc_df %>% 
+  mutate(scale = recode_factor(scale,
+                               "spiritual experiences" = "spiritual",
+                               "other experiences" = "other")) %>%
+  ggplot(aes(x = question, y = icc, color = reliability)) + 
+  facet_grid(~ scale, scales = "free", space = "free") +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  scale_color_brewer(palette = "RdYlGn", direction = 1, drop = F) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1,
+                                   color = ifelse(s1_check_icc_df$reliability == "poor",
+                                                  "#d7191c", "black"))) +
+  labs(title = "Comparing initial responses vs. later 'judgments'",
+       x = "Question", y = "Intraclass correlation coefficient (ICC)")
+```
+
+
+# Percent with particular experiences
+
+```{r}
+d1_byquestion %>% 
+  count(godvoxaloud) %>% 
+  mutate(godvoxaloud = recode_factor(godvoxaloud, 
+                                     "0" = "no", "0.5" = "maybe", "1" = "yes"),
+         proportion = round(n/sum(n), 2))
+```
+
+```{r}
+d1_byquestion %>% 
+  filter(!is.na(godvoxaloud)) %>%
+  count(country, godvoxaloud) %>% 
+  mutate(godvoxaloud = recode_factor(godvoxaloud, 
+                                     "0" = "no", "0.5" = "maybe", "1" = "yes")) %>%
+  complete(country, nesting(godvoxaloud), fill = list(n = 0)) %>%
+  spread(godvoxaloud, n) %>%
+  mutate(total = no + maybe + yes) %>%
+  janitor::adorn_totals() %>%
+  mutate_at(vars(no, maybe, yes), funs(round(./total, 2)*100)) %>%
+  select(-total) %>%
+  data.frame() %>%
+  mutate_at(vars(no, maybe, yes), funs(paste0(., "%"))) %>%
+  kable() %>%
+  kable_styling() %>%
+  row_spec(6, bold = T)
+```
+
+```{r}
+d1_byquestion %>% 
+  filter(!is.na(godviavisions)) %>%
+  count(country, godviavisions) %>% 
+  mutate(godviavisions = recode_factor(godviavisions, 
+                                       "0" = "no", "0.5" = "maybe", "1" = "yes")) %>%
+  complete(country, nesting(godviavisions), fill = list(n = 0)) %>%
+  spread(godviavisions, n) %>%
+  mutate(total = no + maybe + yes) %>%
+  janitor::adorn_totals() %>%
+  mutate_at(vars(no, maybe, yes), funs(round(./total, 2)*100)) %>%
+  select(-total) %>%
+  data.frame() %>%
+  mutate_at(vars(no, maybe, yes), funs(paste0(., "%"))) %>%
+  kable() %>%
+  kable_styling() %>%
+  row_spec(6, bold = T)
+```
+
+
+# TML's additional analyses
+
+## Focus on `godvoxaloud` and `godviavisions`
+
+```{r}
+d1_tml1 <- d1 %>% select(country, subject_id, abs_score, por_score) %>%
+  full_join(d1_byquestion %>% 
+              select(country, subject_id, godvoxaloud, godviavisions) %>%
+              gather(question, response, -c(country, subject_id)) %>%
+              mutate(response_yn = case_when(response < 1 ~ 0,
+                                             response == 1 ~ 1,
+                                             TRUE ~ NA_real_)))
+```
+
+```{r}
+glmer(response_yn ~ scale(por_score) + (1 | question) + (1 | country), 
+      family = "binomial", d1_tml1) %>% summary()
+```
+
+```{r}
+glmer(response_yn ~ scale(abs_score) + (1 | question) + (1 | country), 
+      family = "binomial", d1_tml1) %>% summary()
+```
+
+```{r}
+glmer(response_yn ~ scale(por_score) + (1 | country), 
+      family = "binomial", d1_tml1 %>% filter(question == "godvoxaloud")) %>% 
+  summary()
+```
+
+```{r}
+glmer(response_yn ~ scale(abs_score) + (1 | country), 
+      family = "binomial", d1_tml1 %>% filter(question == "godvoxaloud")) %>% 
+  summary()
+```
+
+```{r}
+glmer(response_yn ~ scale(por_score) + (1 | country), 
+      family = "binomial", d1_tml1 %>% filter(question == "godviavisions")) %>% 
+  summary()
+```
+
+```{r}
+glmer(response_yn ~ scale(abs_score) + (1 | country), 
+      family = "binomial", d1_tml1 %>% filter(question == "godviavisions")) %>% 
+  summary()
+```
+
+## Focus on other presence questions
+
+```{r}
+d1_tml2 <- d1 %>% select(country, subject_id, abs_score, por_score) %>%
+  full_join(d1_byquestion %>% 
+              select(country, subject_id, neartangiblegod, presencenotgod, 
+                     presencedemon, beingentbody, seehearnotgod, 
+                     spiritbeingencounter) %>%
+              gather(question, response, -c(country, subject_id)) %>%
+              mutate(response_yn = case_when(response < 1 ~ 0,
+                                             response == 1 ~ 1,
+                                             TRUE ~ NA_real_)))
+```
+
+```{r}
+glmer(response_yn ~ scale(por_score) + (1 | question) + (1 | country), 
+      family = "binomial", d1_tml2) %>% summary()
+```
+
+```{r}
+glmer(response_yn ~ scale(abs_score) + (1 | question) + (1 | country), 
+      family = "binomial", d1_tml2) %>% summary()
+```
+
+

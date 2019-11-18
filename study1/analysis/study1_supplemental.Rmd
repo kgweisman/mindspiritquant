@@ -1,0 +1,930 @@
+---
+title: "Study 1: Supplemental analyses"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we conduct additional analyses for Study 1: In-depth interviews with people of faith (as discussed in Supplemental Information).
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+source("../../scripts_general/var_recode_contrast.R")
+source("../scripts_s1/s1_var_groups.R")
+```
+
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+d1_byquestion <- read_csv("../data/study1_byquestion.csv") %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher),
+         study = "study 1")
+```
+
+```{r}
+d1 <- read.csv("../data/study1.csv") %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher),
+         study = "study 1")
+```
+
+
+# Missing data
+
+```{r}
+d1 %>% filter(!is.na(por_score_std),
+              !is.na(abs_score_std),
+              !is.na(spirit_score_std)) %>% 
+  distinct(subject_id) %>%
+  left_join(d1_byquestion %>%
+              select(subject_id, s1_var_por, s1_var_abs, 
+                     s1_var_spirit, s1_var_other) %>%
+              distinct()) %>%
+  gather(question, response, -subject_id) %>%
+  mutate(scale = case_when(
+    question %in% s1_var_por ~ "Porosity Vignettes",
+    question %in% s1_var_abs ~ "Absorption",
+    question %in% s1_var_spirit ~ "Spiritual Events",
+    question %in% s1_var_other ~ "Other Extraordinary Events")) %>%
+  count(scale, response) %>%
+  group_by(scale) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup() %>%
+  filter(is.na(response))
+```
+
+```{r}
+d1 %>% filter(!is.na(por_score_std),
+              !is.na(abs_score_std),
+              !is.na(spirit_score_std)) %>% 
+  distinct(subject_id) %>%
+  left_join(d1_byquestion %>%
+              select(subject_id, s1_var_por, s1_var_abs, 
+                     s1_var_spirit, s1_var_other) %>%
+              distinct() %>%
+              gather(question, response, -subject_id)) %>%
+  mutate(scale = case_when(
+    question %in% s1_var_por ~ "Porosity Vignettes",
+    question %in% s1_var_abs ~ "Absorption",
+    question %in% s1_var_spirit ~ "Spiritual Events",
+    question %in% s1_var_other ~ "Other Extraordinary Events")) %>%
+  count(scale, subject_id, response) %>%
+  filter(is.na(response)) %>%
+  count(scale) %>%
+  mutate(prop = n/306)
+```
+
+
+# Reliability
+
+## Spiritual Events
+
+```{r}
+d_alpha_spirit <- data.frame()
+for(i in c(levels(d1$country), "ALL")){
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d1_byquestion, 
+                                      which_vars = s1_var_spirit,
+                                      which_country = i))
+  d_alpha_spirit <- bind_rows(d_alpha_spirit, res)
+  rm(res)
+}
+```
+
+```{r}
+d_alpha_other <- data.frame()
+for(i in c(levels(d1$country), "ALL")){
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d1_byquestion, 
+                                      which_vars = s1_var_other,
+                                      which_country = i))
+  d_alpha_other <- bind_rows(d_alpha_other, res)
+  rm(res)
+}
+```
+
+```{r}
+d_alpha_por <- data.frame()
+for(i in c(levels(d1$country), "ALL")){
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d1_byquestion, 
+                                      which_vars = s1_var_por,
+                                      which_country = i))
+  d_alpha_por <- bind_rows(d_alpha_por, res)
+  rm(res)
+}
+```
+
+```{r}
+d_alpha_abs <- data.frame()
+for(i in c(levels(d1$country), "ALL")){
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d1_byquestion, 
+                                      which_vars = s1_var_abs,
+                                      which_country = i))
+  d_alpha_abs <- bind_rows(d_alpha_abs, res)
+  rm(res)
+}
+```
+
+```{r}
+bind_rows(d_alpha_por %>% mutate(scale = "Porosity Vignettes"),
+          d_alpha_abs %>% mutate(scale = "Absorption"),
+          d_alpha_spirit %>% mutate(scale = "Spiritual Events"),
+          d_alpha_other %>% mutate(scale = "Other Extraordinary Events")) %>%
+  select(scale, country, alpha) %>%
+  mutate(scale = factor(scale,
+                        levels = c("Porosity Vignettes", "Absorption", 
+                                   "Spiritual Events",
+                                   "Other Extraordinary Events")), 
+         country = factor(country, levels = c(levels_country, "ALL"))) %>%
+  spread(country, alpha) %>%
+  kable(digits = 2) %>%
+  kable_styling() %>%
+  column_spec(7, bold = T)
+```
+
+
+# Robustness check
+
+```{r, include = F}
+df_all <- data.frame()
+for(i in s1_var_spirit){
+  df_temp <- score_fun(df = d1_byquestion %>% 
+                         select(country, subject_id, s1_var_spirit), 
+                       var_omit = i) %>%
+    mutate(omitted = i)
+  df_all <- bind_rows(df_temp, df_all)
+}
+```
+
+```{r, fig.width = 10, fig.asp = 0.2, include = F}
+df_all %>%
+  ggplot(aes(x = omitted, y = score, color = country)) +
+  facet_grid(~country) +
+  geom_jitter(width = 0.3, height = 0, alpha = 0.5, show.legend = F) +
+  geom_pointrange(data = . %>% group_by(country, omitted) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper),
+                  color = "black") +
+  scale_color_brewer(palette = "Dark2") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r, fig.width = 5, fig.asp = 1.2, include = F}
+df_all %>%
+  ggplot(aes(x = country, y = score, color = country)) +
+  facet_wrap(~omitted) +
+  geom_jitter(width = 0.3, height = 0, alpha = 0.5, show.legend = F) +
+  geom_pointrange(data = . %>% group_by(country, omitted) %>%
+                    langcog::multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_upper),
+                  color = "black") +
+  scale_color_brewer(palette = "Dark2") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r}
+reg_check_fun <- function(df, var_omit){
+  d <- score_fun(df = df, var_omit = var_omit) %>% 
+    mutate(score_std = scale(score)) %>% full_join(d1)
+  
+  # run primary analysis
+  r0 <- lmer(score_std ~ por_score_std * abs_score_std +
+               (1 | country/site/religion), data = d)
+  r0_tab <- summary((r0))$coefficients[] %>%
+    data.frame() %>%
+    rownames_to_column("param") %>%
+    rename(b = Estimate, se = Std..Error, t = t.value, p = Pr...t..) %>%
+    mutate(omitted = var_omit,
+           signif = case_when(p < 0.001 ~ "***",
+                              p < 0.01 ~ "**",
+                              p < 0.05 ~ "*",
+                              p < 0.1 ~ "+",
+                              TRUE ~ "")) %>%
+    select(omitted, param, b, se, df, t, p, signif) %>%
+    filter(param != "(Intercept)")
+  
+  reg_tab <- r0_tab
+  return(reg_tab)
+}
+```
+
+```{r}
+reg_check_df <- data.frame()
+for(i in s1_var_spirit){
+  temp_df <- reg_check_fun(df = d1_byquestion %>% 
+                             select(country, subject_id, s1_var_spirit), 
+                           var_omit = i)
+  reg_check_df <- bind_rows(reg_check_df, temp_df)
+}
+```
+
+```{r, fig.width = 4, fig.asp = 0.7}
+reg_check_df %>%
+  full_join(reg_check_fun(df = d1_byquestion %>% 
+                            select(country, subject_id, s1_var_spirit), 
+                          var_omit = NA_character_) %>%
+              mutate(omitted = "ALL VARIABLES INCLUDED")) %>%
+  mutate(mod_type = case_when(omitted == "ALL VARIABLES INCLUDED" ~ "all",
+                              TRUE ~ "test"),
+         signif_cat = ifelse(signif == "", F, T),
+         omitted = factor(omitted, 
+                          levels = c("ALL VARIABLES INCLUDED", s1_var_spirit)),
+         param = recode_factor(param,
+                               "por_score_std" = "Porosity Vignettes",
+                               "abs_score_std" = "Absorption",
+                               "por_score_std:abs_score_std" = "Interaction")) %>%
+  ggplot(aes(x = b, y = reorder(omitted, desc(omitted)), 
+             shape = mod_type, size = mod_type, fill = signif)) + 
+  facet_grid(~ param) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(show.legend = F) +
+  scale_shape_manual(values = c(23, 21)) +
+  scale_fill_manual(values = c("black", "dodgerblue")) +
+  scale_size_manual(values = c(3, 1.5)) +
+  labs(title = "Omitting 1 variable at a time from Spiritual Events scale",
+       subtitle = "Primary analysis (mixed effects linear regression); blue = significant (p<0.05)",
+       x = "β", y = "Question omitted from Spiritual Events score") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r}
+reg_brms_check_fun <- function(df, var_omit){
+  d <- score_fun(df = df, var_omit = var_omit) %>%
+    mutate(score_std = scale(score)) %>% full_join(d1)
+  
+  r0 <- brm(score_std ~ por_score_std * abs_score_std + 
+              (1 | country/site/religion), data = d,
+            control = list(adapt_delta = 0.99),
+            seed = 1234, cores = 4, chains = 4)
+  
+  r0_tab <- fixef(r0) %>%
+    data.frame() %>%
+    rownames_to_column("param") %>%
+    rename(b = Estimate, se = Est.Error, ci_lower = Q2.5, ci_upper = Q97.5) %>%
+    mutate(omitted = var_omit,
+           nonzero = case_when(ci_lower * ci_upper > 0 ~ "*",
+                               TRUE ~ "")) %>%
+    select(omitted, param, b, se, ci_lower, ci_upper, nonzero)
+  
+  reg_tab <- r0_tab
+  return(reg_tab)
+}
+```
+
+XX BOOKMARK
+
+```{r}
+# reg_brms_check_df <- data.frame()
+# for(i in s1_var_spirit){
+#   temp_df <- reg_brms_check_fun(df = d1_byquestion %>%
+#                                   select(country, subject_id, s1_var_spirit),
+#                                 var_omit = i)
+#   reg_brms_check_df <- bind_rows(reg_brms_check_df, temp_df)
+#   saveRDS(reg_brms_check_df, "./models/reg_brms_check_df.RDS")
+#   rm(temp_df)
+# }
+
+reg_brms_check_df <- readRDS("./models/reg_brms_check_df.RDS")
+```
+
+```{r}
+# reg_brms_check_all <- reg_brms_check_fun(
+#   df = d1_byquestion %>% select(country, subject_id, s1_var_spirit),
+#   var_omit = NA_character_)
+# 
+# saveRDS(reg_brms_check_all, "./models/reg_brms_check_all.RDS")
+
+reg_brms_check_all <- readRDS("./models/reg_brms_check_all.RDS")
+```
+
+```{r, fig.width = 4, fig.asp = 0.7}
+reg_brms_check_df %>%
+  full_join(reg_brms_check_all %>%
+              mutate(omitted = "ALL VARIABLES INCLUDED")) %>%
+  filter(param != "Intercept") %>%
+  mutate(param = recode_factor(param,
+                               "por_score_std" = "Porosity",
+                               "abs_score_std" = "Absorption",
+                               "por_score_std:abs_score_std" = "Interaction"),
+         omitted = factor(omitted, 
+                          levels = c("ALL VARIABLES INCLUDED", s1_var_spirit))) %>%
+  mutate(mod_type = case_when(omitted == "ALL VARIABLES INCLUDED" ~ "all",
+                              TRUE ~ "test")) %>%
+  ggplot(aes(x = b, y = reorder(omitted, desc(omitted)),
+             shape = mod_type, fill = nonzero)) + 
+  facet_grid(~ param) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), height = 0) +
+  geom_point(aes(size = mod_type), show.legend = F) +
+  scale_shape_manual(values = c(23, 21)) +
+  scale_size_manual(values = c(3, 1.5)) +
+  scale_fill_manual(values = c("black", "dodgerblue")) +
+  labs(title = "Omitting 1 variable at a time from Spiritual Events scale",
+       subtitle = "Bayesian version of primary analysis; blue = non-zero",
+       x = "β", y = "Question omitted from Spiritual Events score")
+```
+
+
+# Recoded dataset
+
+```{r}
+d1r_byquestion <- read_csv("../data/study1r_byquestion.csv")
+```
+
+```{r}
+d1r <- read_csv("../data/study1r.csv") %>%
+  rename_at(vars(contains("score")), funs(gsub("score", "recoded", .))) %>%
+  full_join(d1) %>%
+  mutate(country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion),
+         researcher = factor(researcher, levels = levels_researcher))
+
+contrasts(d1r$country) <- contrasts_country
+contrasts(d1r$site) <- contrasts_site
+contrasts(d1r$religion) <- contrasts_religion
+```
+
+
+## Comparison to original dataset
+
+```{r}
+# omit subjects with no data from interviewers (all NAs)
+s1_subj_int_nodata <- d1_byquestion %>% 
+  select(subject_id, s1_var_spirit, s1_var_other) %>%
+  gather(question, response, -subject_id) %>%
+  count(subject_id, response) %>%
+  filter(is.na(response), n == 29) %>%
+  select(subject_id)
+
+# omit subjects with no data from coders (all NAs)
+s1_subj_cod_nodata <- d1r_byquestion %>% 
+  select(subject_id, s1_var_spirit, s1_var_other) %>%
+  gather(question, response, -subject_id) %>%
+  count(subject_id, response) %>%
+  filter(is.na(response), n == 29) %>%
+  select(subject_id)
+```
+
+```{r}
+d1r_irr <- full_join(
+  d1_byquestion %>% 
+    filter(!subject_id %in% c(s1_subj_int_nodata$subject_id, 
+                              s1_subj_cod_nodata$subject_id)) %>%
+    select(country, site, religion, subject_id, s1_var_spirit, s1_var_other) %>%
+    gather(question, response, -c(country, site, religion, subject_id)),
+  d1r_byquestion %>% 
+    filter(!subject_id %in% c(s1_subj_int_nodata$subject_id, 
+                              s1_subj_cod_nodata$subject_id)) %>%
+    select(country, site, religion, subject_id, s1_var_spirit, s1_var_other) %>%
+    gather(question, recoded, -c(country, site, religion, subject_id))) %>%
+  mutate(agree = case_when(is.na(recoded) & is.na(response) ~ NA_real_,
+                           is.na(recoded) | is.na(response) ~ 0,
+                           # is.na(recoded) | is.na(response) ~ NA_real_,
+                           recoded == response ~ 1,
+                           recoded != response ~ 0,
+                           TRUE ~ NA_real_),
+         question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+         scale = case_when(question %in% s1_var_spirit ~ "spiritual experiences",
+                           question %in% s1_var_other ~ "other experiences",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, 
+                        levels = c("spiritual experiences", "other experiences")),
+         country = factor(country, levels = levels_country),
+         site = factor(site, levels = levels_site),
+         religion = factor(religion, levels = levels_religion))
+
+contrasts(d1r_irr$country) <- contrasts_country
+contrasts(d1r_irr$site) <- contrasts_site
+contrasts(d1r_irr$religion) <- contrasts_religion
+```
+
+```{r}
+s1r_perag_df <- d1r_irr %>%
+  group_by(scale, question) %>%
+  summarise(percent_agree = mean(agree, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(reliability = case_when(percent_agree < 0.7 ~ "<70%",
+                                 percent_agree < 0.8 ~ "70-80%",
+                                 percent_agree < 0.9 ~ "80-90%",
+                                 percent_agree <= 1 ~ "90-100%",
+                                 TRUE ~ NA_character_),
+         reliability = factor(reliability, 
+                              levels = c("<70%", "70-80%", 
+                                         "80-90%", "90-100%")))
+```
+
+```{r}
+# s1r_perag_df %>% arrange(percent_agree)
+# s1r_perag_df %>% count(reliability) %>% mutate(prop = n/sum(n))
+s1r_perag_df %>% 
+  mutate(scale = recode_factor(scale,
+                               "spiritual experiences" = "spiritual",
+                               "other experiences" = "other")) %>%
+  ggplot(aes(x = question, y = percent_agree, color = reliability)) + 
+  facet_grid(~ scale, scales = "free", space = "free") +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  scale_color_brewer(palette = "RdYlGn", direction = 1, drop = F) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1,
+                                   color = ifelse(s1r_perag_df$reliability == "<70%",
+                                                  "#d7191c", "black"))) +
+  labs(title = "Comparing QTS1 vs. QTS2",
+       x = "Question", y = "Percent agreement")
+```
+
+```{r}
+s1r_icc_df <- data.frame(question = character(), icc = numeric())
+for(i in c(s1_var_spirit, s1_var_other)){
+  temp_icc <- icc_fun(d1r_irr, var_name = i, which_model = "oneway")
+  temp_res <- data.frame(question = i, icc = temp_icc)
+  s1r_icc_df <- full_join(s1r_icc_df, temp_res)
+  rm(temp_res, i)
+}
+
+s1r_icc_df <- s1r_icc_df %>%
+  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+         reliability = case_when(icc < 0.5 ~ "poor",
+                                 icc < 0.75 ~ "moderate",
+                                 icc < 0.9 ~ "good", 
+                                 icc <= 1 ~ "excellent",
+                                 TRUE ~ NA_character_),
+         reliability = factor(reliability, 
+                              levels = c("poor", "moderate", 
+                                         "good", "excellent")),
+         scale = case_when(question %in% s1_var_spirit ~ "spiritual experiences",
+                           question %in% s1_var_other ~ "other experiences",
+                           TRUE ~ NA_character_),
+         scale = factor(scale, 
+                        levels = c("spiritual experiences", "other experiences")))
+```
+
+```{r}
+# s1r_icc_df %>% arrange(icc)
+s1r_icc_df %>% count(reliability) %>% mutate(prop = n/sum(n))
+
+s1r_icc_df %>% 
+  mutate(scale = recode_factor(scale,
+                               "spiritual experiences" = "spiritual",
+                               "other experiences" = "other")) %>%
+  ggplot(aes(x = question, y = icc, color = reliability)) + 
+  facet_grid(~ scale, scales = "free", space = "free") +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  scale_color_brewer(palette = "RdYlGn", direction = 1, drop = F) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1,
+                                   color = ifelse(s1r_icc_df$reliability == "poor",
+                                                  "#d7191c", "black"))) +
+  labs(title = "Comparing QTS1 vs. QTS2",
+       x = "Question", y = "Intraclass correlation coefficient (ICC)")
+```
+
+```{r}
+s1r_perag_df %>% 
+  select(question, percent_agree) %>%
+  mutate(percent_agree = paste0(round(percent_agree * 100), "%")) %>%
+  full_join(s1r_icc_df %>% select(question, icc)) %>%
+  arrange(question) %>% 
+  kable(digits = 2) %>% 
+  kable_styling()
+```
+
+```{r}
+s1_icc_poor <- s1r_icc_df$question[s1r_icc_df$reliability == "poor"] %>% 
+  as.character()
+```
+
+```{r}
+# make dataset omitting 4 items with "poor" ICC from spiritual experiences
+d1r_mod <- score_fun(d1r_byquestion %>% 
+                       select(country, subject_id, !!s1_var_spirit),
+                     var_omit = s1_icc_poor) %>%
+  rename(spirit_mod_recoded = score) %>%
+  full_join(score_fun(d1_byquestion %>%
+                        select(country, subject_id, !!s1_var_spirit),
+                      var_omit = s1_icc_poor) %>%
+              rename(spirit_mod_score = score)) %>%
+  mutate(spirit_mod_recoded_std = scale(spirit_mod_recoded),
+         spirit_mod_score_std = scale(spirit_mod_score)) %>%
+  group_by(country) %>%
+  mutate(spirit_mod_recoded_std2 = scale(spirit_mod_recoded),
+         spirit_mod_score_std2 = scale(spirit_mod_score)) %>%
+  ungroup() %>%
+  full_join(d1r) %>%
+  mutate(country = factor(country, levels = levels_country))
+
+contrasts(d1r_mod$country) <- contrasts_country
+```
+
+## Primary analysis
+
+### Recoded (full scale)
+
+```{r}
+rr1 <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
+              (1 | country/site/religion),
+            data = d1r)
+summary(rr1)
+```
+
+```{r}
+piecewiseSEM::rsquared(rr1)
+```
+
+```{r}
+regtab_fun(rr1) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr1)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(rr1) %>%
+  mutate(Group = factor(Group,
+                        levels = c("Country", "Site, nested within Country",
+                                   "Religion, nested within Site, nested within Country", 
+                                   "Residual"))) %>%
+  arrange(Group) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr1)), color = "black")
+```
+
+### Original (limited scale)
+
+```{r}
+rr1a <- lmer(spirit_mod_score_std ~ por_score_std * abs_score_std +
+               (1 | country/site/religion),
+             data = d1r_mod)
+summary(rr1a)
+```
+
+```{r}
+piecewiseSEM::rsquared(rr1a)
+```
+
+```{r}
+regtab_fun(rr1a) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr1a)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(rr1a) %>%
+  mutate(Group = factor(Group,
+                        levels = c("Country", "Site, nested within Country",
+                                   "Religion, nested within Site, nested within Country", 
+                                   "Residual"))) %>%
+  arrange(Group) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr1a)), color = "black")
+```
+
+### Recoded (limited scale)
+
+```{r}
+rr1b <- lmer(spirit_mod_recoded_std ~ por_score_std * abs_score_std +
+               # (1 | country/site/religion), # fails to converge
+               (1 | country/religion),
+             data = d1r_mod)
+summary(rr1b)
+```
+
+```{r}
+piecewiseSEM::rsquared(rr1b)
+```
+
+```{r}
+regtab_fun(rr1b) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr1b)), color = "black")
+```
+
+XX BOOKMARK 
+```{r}
+regtab_ran_fun(rr1b) %>%
+  # correct labeling by hand to account for different model
+  mutate(Group = factor(Group, levels = c("Country",
+                                          "Religion, nested within Country",
+                                          "Residual"))) %>%
+  arrange(Group) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr1b)), color = "black")
+```
+
+### Comparison of models
+
+```{r}
+r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+             (1 | country/site/religion),
+           data = d1)
+
+r1_bayes <- readRDS("./models/r1_bayes.RDS")
+```
+
+```{r}
+r1_comp_df <- bind_rows(
+  summary(r1)$coefficients %>% 
+    data.frame() %>%
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Original, all items"),
+  summary(rr1)$coefficients %>% 
+    data.frame() %>%
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Recoded, all items"),
+  summary(rr1a)$coefficients %>% 
+    data.frame() %>%
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Original, dropping 4 items"),
+  summary(rr1b)$coefficients %>% 
+    data.frame() %>%
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Recoded, dropping 4 items")) %>%
+  mutate_at(vars(Estimate, Std..Error, df, t.value, Pr...t..), 
+            funs(as.numeric)) %>%
+  mutate(Parameter = recode_factor(Parameter,
+                                   "(Intercept)" = "Intercept",
+                                   "por_score_std" = "Porosity Vignettes", 
+                                   "abs_score_std" = "Absorption",
+                                   "por_score_std:abs_score_std" = "Porosity Vignettes × Absorption"))
+```
+
+```{r}
+r1_comp_df %>%
+  filter(Dataset == "Original, all items") %>%
+  select(Parameter, Estimate) %>%
+  rename(`Original β` = Estimate) %>%
+  full_join(r1_comp_df %>%
+              filter(Dataset != "Original, all items") %>%
+              select(Dataset, Parameter, Estimate) %>%
+              rename(`New β` = Estimate)) %>%
+  mutate(`New β - Original β` = `New β` - `Original β`) %>%
+  kable(digits = 2) %>%
+  kable_styling() %>%
+  collapse_rows(1:2)
+```
+
+```{r}
+r1_comp_df %>% 
+  filter(Parameter != "Intercept") %>%
+  ggplot(aes(x = Dataset, y = Estimate)) +
+  facet_grid(~ Parameter) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(title = "Comparing primary analysis across different datasets (Study 1)",
+       subtitle = "Mixed effects linear regression:\nlmer(spiritual experience ~ absorption * porosity + (1 | country/site/religion)",
+       y = "β")
+```
+
+
+## Attempting to fit more complex random effects structures
+
+```{r}
+# more complex random effects structures: NOT REPORTED
+rr1w <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
+               (1 + por_score_std * abs_score_std | country/site/religion), 
+             data = d1r) # singular
+rr1x <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
+               (1 + por_score_std * abs_score_std || country/site/religion), 
+             data = d1r) # singular, failed to converge
+rr1y <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
+               (1 + por_score_std + abs_score_std | country/site/religion), 
+             data = d1r) # singular
+rr1z <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
+               (1 + por_score_std + abs_score_std || country/site/religion), 
+             data = d1r) # singular
+```
+
+## Bayesian regression
+
+### Recoded (full scale)
+
+```{r}
+# rr1_bayes <- brm(spirit_recoded_std ~ por_score_std * abs_score_std +
+#                   (1 | country/site/religion), d1r,
+#                 control = list(adapt_delta = 0.999),
+#                 seed = 1234, cores = 4, chains = 4)
+# saveRDS(rr1_bayes, "./models/rr1_bayes.RDS")
+
+rr1_bayes <- readRDS("./models/rr1_bayes.RDS")
+
+summary(rr1_bayes)
+```
+
+```{r}
+bayes_R2(rr1_bayes)
+```
+
+```{r}
+regtab_fun(rr1_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr1_bayes)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(rr1_bayes) %>%
+  mutate(Group = factor(Group,
+                        levels = c("Country", "Site, nested within Country",
+                                   "Religion, nested within Site, nested within Country", 
+                                   "Residual"))) %>%
+  arrange(Group) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr1_bayes)), color = "black")
+```
+
+### Original (limited scale)
+
+```{r}
+# rr1a_bayes <- brm(spirit_mod_score_std ~ por_score_std * abs_score_std +
+#                   (1 | country/site/religion), d1r_mod,
+#                 control = list(adapt_delta = 0.999),
+#                 seed = 1234, cores = 4, chains = 4)
+# saveRDS(rr1a_bayes, "./models/rr1a_bayes.RDS")
+
+rr1a_bayes <- readRDS("./models/rr1a_bayes.RDS")
+
+summary(rr1a_bayes)
+```
+
+```{r}
+bayes_R2(rr1a_bayes)
+```
+
+```{r}
+regtab_fun(rr1a_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr1a_bayes)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(rr1a_bayes) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr1a_bayes)), color = "black")
+```
+
+### Recoded (limited scale)
+
+```{r}
+# rr1b_bayes <- brm(spirit_mod_recoded_std ~ por_score_std * abs_score_std +
+#                   (1 | country/site/religion), d1r_mod,
+#                 control = list(adapt_delta = 0.999),
+#                 seed = 1234, cores = 4, chains = 4)
+# saveRDS(rr1b_bayes, "./models/rr1b_bayes.RDS")
+
+rr1b_bayes <- readRDS("./models/rr1b_bayes.RDS")
+
+summary(rr1b_bayes)
+```
+
+```{r}
+bayes_R2(rr1b_bayes)
+```
+
+```{r}
+regtab_fun(rr1b_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr1b_bayes)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(rr1b_bayes) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr1b_bayes)), color = "black")
+```
+
+## Comparison of models
+
+```{r}
+r1_bayes_comp_df <- bind_rows(
+  fixef(r1_bayes) %>% data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Original, all items"),
+  fixef(rr1_bayes) %>% data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Recoded, all items"),
+  fixef(rr1a_bayes) %>% data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Original, dropping 4 items"),
+  fixef(rr1b_bayes) %>% data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(Dataset = "Recoded, dropping 4 items")) %>%
+  mutate_at(vars(Estimate, Est.Error, Q2.5, Q97.5), funs(as.numeric)) %>%
+  mutate(Parameter = recode_factor(Parameter,
+                                   "Intercept" = "Intercept",
+                                   "por_score_std" = "Porosity Vignettes", 
+                                   "abs_score_std" = "Absorption",
+                                   "por_score_std:abs_score_std" = "Porosity Vignettes × Absorption"))
+```
+
+```{r}
+r1_bayes_comp_df %>%
+  filter(Dataset == "Original, all items") %>%
+  select(Parameter, Estimate) %>%
+  rename(`Original β` = Estimate) %>%
+  full_join(r1_comp_df %>%
+              filter(Dataset != "Original, all items") %>%
+              select(Dataset, Parameter, Estimate) %>%
+              rename(`New β` = Estimate)) %>%
+  mutate(`New β - Original β` = `New β` - `Original β`) %>%
+  kable(digits = 2) %>%
+  kable_styling() %>%
+  collapse_rows(1:2)
+```
+
+```{r}
+r1_bayes_comp_df %>%
+  filter(Parameter != "Intercept") %>%
+  ggplot(aes(x = Dataset, y = Estimate)) +
+  facet_grid(~ Parameter) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_pointrange(aes(ymin = Q2.5, ymax = Q97.5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(title = "Comparing primary analysis across different datasets (Study 1)",
+       subtitle = "Bayesian regression:\nbrm(spiritual experience ~ absorption * porosity + (1 | country/site/religion))",
+       y = "β [95% Credible Interval]")
+```
+
+## Country as fixed effect
+
+```{r}
+rr2 <- lm(spirit_recoded_std ~ por_score_std * abs_score_std * country, d1r)
+summary(rr2)
+```
+
+```{r}
+piecewiseSEM::rsquared(rr2)
+```
+
+```{r}
+regtab_fun(rr2) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr2)), color = "black")
+```
+
+
+## Predicting Other Extraordinary Events
+
+```{r}
+rr3 <- lmer(other_recoded_std ~ por_score_std * abs_score_std +
+              (1 | country/site/religion),
+            # (1 | country/religion),
+            data = d1r)
+summary(rr3)
+```
+
+```{r}
+piecewiseSEM::rsquared(rr3)
+```
+
+```{r}
+regtab_fun(rr3) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2:3, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(rr3)), color = "black")
+```
+
+```{r}
+regtab_ran_fun(rr3) %>%
+  mutate(Group = factor(Group,
+                        levels = c("Country", "Site, nested within Country",
+                                   "Religion, nested within Site, nested within Country", 
+                                   "Residual"))) %>%
+  arrange(Group) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(rr3)), color = "black")
+```
+

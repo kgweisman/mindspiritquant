@@ -1,0 +1,231 @@
+---
+title: "Study 1: Wrangling"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we take our raw dataset from Study 1, anonymize it, score it, and create a sharable dataset.
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+```
+
+# Original dataset
+
+```{r}
+# read in data
+d1_raw <- read_csv("../data/raw data/SC_TAT_SPSS_10.8.19 (updated wUS abs score).csv")
+```
+
+```{r}
+# fix data entry errors and extra participants by hand
+source("../scripts_s1/s1_dataentry.R")
+
+d1_0 <- d1_raw %>%
+  filter(
+    # exclude 1 non-Christian from US charismatic sample
+    !subject_name %in% s1_omitsubj_us_nonchristian,
+    # exclude 1 non-American from US sample
+    !subject_name %in% s1_omitsubj_us_nonamerican,
+    # exclude 10 Catholics from Ghanaian indigenous sample
+    !subject_name %in% s1_omitsubj_gh_catholic,
+    # exclude 18 participants from Esalen (not part of this study!)
+    !subject_name %in% s1_omitsubj_us_esalen) %>%
+  # fix data entry errors discovered by coders
+  s1_datacorrect_fun()
+```
+
+```{r}
+# clean up variables
+source("../../scripts_general/var_recode_contrast.R")
+
+d1_1 <- d1_0 %>%
+  # recode categorical variables
+  mutate(date = parse_date(date, format = "%m/%d/%y %H:%M"),
+         researcher = factor(researcher, levels = levels_researcher),
+         researcher_date = parse_date(researcher_date, format = "%m/%d/%y"),
+         country = factor(country, levels = levels_country),
+         site = case_when(grepl("URBAN", quad) ~ "urban",
+                          grepl("RURAL", quad) ~ "rural",
+                          TRUE ~ NA_character_),
+         site = factor(site, levels = levels_site),
+         religion = case_when(grepl("NON-", quad) ~ "indigenous",
+                              grepl("CHRISTIAN", quad) & 
+                                !grepl("NON-", quad) ~ "charismatic",
+                              TRUE ~ NA_character_),
+         religion = factor(religion, levels = levels_religion)) %>%
+  # deal with "." instead of "NA" for missing data in two variables
+  mutate_at(vars(doublyreal_abs, abs_score),
+            funs(as.numeric(gsub("\\.", "NA", .))))
+```
+
+```{r}
+# anonymize
+set.seed(1234)
+d1_2 <- d1_1[sample(nrow(d1_1)), ] %>%
+  rownames_to_column("rand") %>%
+  mutate(rand = as.numeric(rand)) %>%
+  arrange(rand) %>%
+  mutate(subject_id = 10001:(10000+nrow(d1_1)))
+```
+
+```{r}
+# limit to relevant variables & score scales
+source("../scripts_s1/s1_var_groups.R")
+d1_3 <- d1_2 %>%
+  # remove subject names
+  select(-rand, -subject_name) %>%
+  select(s1_var_demo) %>%
+  # score porosity vignettes
+  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_por)) %>%
+              rename(por_score = score)) %>%
+  # score absorption
+  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_abs)) %>%
+              rename(abs_score_calc = score)) %>%
+  # rescale absorption scores recorded by interviewer to 0-1
+  full_join(d1_2 %>% select(subject_id, abs_score) %>%
+              mutate(abs_score_rec = abs_score/34) %>%
+              select(-abs_score)) %>%
+  mutate_at(vars(abs_score_calc, abs_score_rec), funs(as.numeric)) %>%
+  mutate(abs_score = case_when(
+    # if possible,  use calculated score
+    # use score recoded by interviewer only when calculated score not available
+    abs_score_calc == abs_score_rec ~ abs_score_calc,
+    (is.na(abs_score_rec) & is.na(abs_score_calc)) ~ NA_real_,
+    is.na(abs_score_calc) ~ abs_score_rec,
+    is.na(abs_score_rec) ~ abs_score_calc,
+    TRUE ~ abs_score_calc)) %>%
+  select(-abs_score_calc, -abs_score_rec) %>%
+  # score spiritual experiences
+  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_spirit)) %>%
+              rename(spirit_score = score)) %>%
+  # score other extraordinary experiences
+  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_other)) %>%
+              rename(other_score = score))
+```
+
+```{r}
+# standardize
+d1_4 <- d1_3 %>%
+  mutate(study = "study 1") %>%
+  group_by(study) %>%
+  # add standardized scores (collapsing across sites)
+  mutate_at(vars(por_score, abs_score, spirit_score, other_score), 
+            funs("std" = scale)) %>%
+  # add standardized scores (within sites)
+  group_by(country) %>%
+  mutate_at(vars(por_score, abs_score, spirit_score, other_score), 
+            funs("std2" = scale)) %>%
+  ungroup()
+```
+
+```{r}
+# export csvs
+write_csv(d1_2 %>% select(-rand, -subject_name), "../data/study1_byquestion.csv")
+write_csv(d1_4, "../data/study1.csv")
+```
+
+## Recoded dataset
+
+```{r}
+d1r_raw <- read_csv("../data/raw data/DATA ENTRY - QTS2- Data Sheet_October 15.csv") %>%
+  filter(!is.na(researcher), !grepl("Researcher", researcher)) %>%
+  mutate_at(vars(commwgod:deepquesdefanswr), funs(as.numeric))
+```
+
+```{r}
+# fix data entry errors and extra participants by hand
+d1r_0 <- d1r_raw %>%
+    filter(
+    # exclude 1 non-Christian from US charismatic sample
+    !subject_name %in% s1_omitsubj_us_nonchristian,
+    # exclude 1 non-American from US sample
+    !subject_name %in% s1_omitsubj_us_nonamerican,
+    # exclude 10 Catholics from Ghanaian indigenous sample
+    !subject_name %in% s1_omitsubj_gh_catholic,
+    # exclude 18 participants from Esalen (not part of this study!)
+    !subject_name %in% s1_omitsubj_us_esalen) %>%
+  # fix data entry errors discovered by coders
+  s1_datacorrect_fun()
+```
+
+```{r}
+# clean up variables
+d1r_1 <- d1r_0 %>%
+  # recode categorical variables
+  mutate(researcher = factor(researcher, levels = levels_researcher),
+         country = factor(country, levels = levels_country),
+         site = case_when(grepl("URBAN", quad) ~ "urban",
+                          grepl("RURAL", quad) ~ "rural",
+                          TRUE ~ NA_character_),
+         site = factor(site, levels = levels_site),
+         religion = case_when(grepl("NON-", quad) ~ "indigenous",
+                              grepl("CHRISTIAN", quad) & 
+                                !grepl("NON-", quad) ~ "charismatic",
+                              TRUE ~ NA_character_),
+         religion = factor(religion, levels = levels_religion)) %>%
+  # rename variables to match original dataset
+  rename(godviavisions = godviavision,
+         godguideviaknowing = godgvk0wing,
+         godguideviasensations = godgvsensation,
+         godviabodyexperiences = godviabodyexp,
+         presencenotgod = presence0tgod,
+         seehearnotgod = seehear0tgod,
+         trmblshakespirtpwr = trmblshksprtpwr,
+         rushofspiritpwr = rushofsprtpwr,
+         intenseemospiritpwr = intensemosprtpwr,
+         mindspiritexitbody = mindsprtextbody,
+         voxwhenalone = voxwhe.lone,
+         seethingscornereye = seethngcoeye)
+```
+
+```{r}
+# anonymize
+d1r_2 <- d1r_1 %>%
+  left_join(d1_2 %>% select(subject_name, subject_id))
+
+# add extra subject ids for extra subjects not in original dataset
+d1r_2$subject_id[is.na(d1r_2$subject_id)] = max(d1r_2$subject_id, na.rm = T) + 
+  1:length(d1r_2$subject_id[is.na(d1r_2$subject_id)])
+
+d1r_2 <- d1r_2 %>% select(-subject_name)
+```
+
+```{r}
+# implement scoring
+d1r_3 <- d1r_2 %>%
+  select(researcher, country, site, religion, coder, subject_id) %>%
+  # score spiritual experiences
+  full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_spirit)) %>%
+              rename(spirit_score = score)) %>%
+  # score other extraordinary experiences
+  full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_other)) %>%
+              rename(other_score = score))
+```
+
+```{r}
+# standardize
+d1r_4 <- d1r_3 %>%
+  mutate(study = "study 1") %>%
+  group_by(study) %>%
+  # add standardized scores (collapsing across sites)
+  mutate_at(vars(spirit_score, other_score), 
+            funs("std" = scale)) %>%
+  # add standardized scores (within sites)
+  group_by(country) %>%
+  mutate_at(vars(spirit_score, other_score), 
+            funs("std2" = scale)) %>%
+  ungroup()
+```
+
+```{r}
+# export csvs
+write_csv(d1r_2, "../data/study1r_byquestion.csv")
+write_csv(d1r_4, "../data/study1r.csv")
+```
+
+
