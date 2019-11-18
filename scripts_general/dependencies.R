@@ -2,6 +2,7 @@
 
 require(piecewiseSEM)
 require(lme4)
+require(lmerTest)
 require(brms)
 require(psych)
 require(kableExtra)

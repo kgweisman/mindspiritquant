@@ -3,7 +3,7 @@ title: "Study 1"
 subtitle: "Luhrmann, Weisman, et al."
 output: 
   html_notebook:
-    # theme: flatly
+    theme: flatly
     toc: true
     toc_float: true
 ---
@@ -190,18 +190,12 @@ rsquared(r1)
 ```
 
 ```{r}
-regtab_fun(r1) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1)), color = "black")
+regtab_fun(r1, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(r1) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r1)), color = "black")
+regtab_ran_fun(r1) %>% regtab_style_fun()
 ```
 
 ## Attempting to fit more complex random effects structures
@@ -261,18 +255,12 @@ bayes_R2(r1_bayes)
 ```
 
 ```{r}
-regtab_fun(r1_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_bayes)), color = "black")
+regtab_fun(r1_bayes, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(r1_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r1_bayes)), color = "black")
+regtab_ran_fun(r1_bayes) %>% regtab_style_fun()
 ```
 
 ## Country as fixed effect
@@ -287,11 +275,8 @@ piecewiseSEM::rsquared(r2)
 ```
 
 ```{r}
-regtab_fun(r2) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r2)), color = "black")
+regtab_fun(r2, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 
@@ -310,17 +295,11 @@ rsquared(r3)
 ```
 
 ```{r}
-regtab_fun(r3) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r3)), color = "black")
+regtab_fun(r3, por_name = "Porosity Vignettes") %>%
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(r3) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r3)), color = "black")
+regtab_ran_fun(r3) %>% regtab_style_fun()
 ```
 
