@@ -3,7 +3,7 @@ title: "Study 3"
 subtitle: "Luhrmann, Weisman, et al."
 output: 
   html_notebook:
-    # theme: flatly
+    theme: flatly
     toc: true
     toc_float: true
 ---
