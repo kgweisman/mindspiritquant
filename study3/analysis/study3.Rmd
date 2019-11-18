@@ -1,0 +1,270 @@
+---
+title: "Study 3"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    # theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we analyze Study 3: Short-form interviews with the general population.
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+source("../../scripts_general/var_recode_contrast.R")
+source("../scripts_s3/s3_var_groups.R")
+```
+
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+d3a <- read_csv("../data/d_demo.csv") %>% 
+  select(-X1) %>%
+  # correct duplicate entry by hand
+  filter(!(epi_subj == "50807" & is.na(epi_charc))) %>%
+  distinct() %>%
+  full_join(read_csv("../data/d_por_scored.csv") %>% 
+              select(-X1) %>%
+              rename(por_score = score)) %>%
+  full_join(read_csv("../data/d_spex_base_q2to23_scored_propall.csv") %>% 
+              select(-X1) %>%
+              rename(spirit_score = score)) %>%
+  mutate(study = "study 3") %>%
+  group_by(study) %>%
+  mutate_at(vars(por_score, spirit_score), funs(std = scale(.))) %>%
+  ungroup() %>%
+  group_by(epi_ctry) %>%
+  mutate_at(vars(por_score, spirit_score), funs(std2 = scale(.))) %>%
+  ungroup() %>%
+  mutate(epi_ctry = factor(epi_ctry, levels = levels_country),
+         epi_sample = factor(epi_charc, 
+                             levels = c(0, 1), 
+                             labels = c("general population", "charismatic")))
+```
+
+```{r}
+d3_byquestion <- full_join(read_csv("../data/d_por.csv") %>% 
+                             select(-X1),
+                           read_csv("../data/d_spex_base_q2to23.csv") %>% 
+                             select(-X1)) %>%
+  mutate(study = "study 3") %>%
+  filter(question %in% c(s3_var_por, s3_var_spex, s3_var_being, s3_var_other)) %>%
+  select(epi_ctry, epi_subj, question, response) %>%
+  distinct() %>%
+  spread(question, response) %>%
+  full_join(d3a %>% distinct(epi_ctry, epi_sample, epi_subj))
+
+d3 <- bind_rows(d3_byquestion %>%
+                  filter(epi_ctry == "US") %>%
+                  select(epi_subj, s3_var_spex, s3_var_being_us) %>%
+                  gather(question, response, -epi_subj) %>%
+                  mutate(scale = "spirit_score"),
+                d3_byquestion %>%
+                  filter(epi_ctry == "Ghana") %>%
+                  select(epi_subj, s3_var_spex, s3_var_being_gh) %>%
+                  gather(question, response, -epi_subj) %>%
+                  mutate(scale = "spirit_score"),
+                d3_byquestion %>%
+                  filter(epi_ctry == "Thailand") %>%
+                  select(epi_subj, s3_var_spex, s3_var_being_th) %>%
+                  gather(question, response, -epi_subj) %>%
+                  mutate(scale = "spirit_score"),
+                d3_byquestion %>%
+                  filter(epi_ctry == "China") %>%
+                  select(epi_subj, s3_var_spex, s3_var_being_ch) %>%
+                  gather(question, response, -epi_subj) %>%
+                  mutate(scale = "spirit_score"),
+                d3_byquestion %>%
+                  filter(epi_ctry == "Vanuatu") %>%
+                  select(epi_subj, s3_var_spex, s3_var_being_vt) %>%
+                  gather(question, response, -epi_subj) %>%
+                  mutate(scale = "spirit_score"),
+                d3_byquestion %>%
+                  select(epi_subj, s3_var_por, s3_var_other) %>%
+                  gather(question, response, -epi_subj) %>%
+                  mutate(scale = case_when(
+                    question %in% s3_var_por ~ "por_score",
+                    question %in% s3_var_other ~ "other_score"))) %>%
+  full_join(d3a %>% distinct(epi_ctry, epi_sample, epi_subj)) %>%
+  mutate(scale = factor(scale,
+                        levels = c("por_score", "spirit_score",
+                                   "other_score")),
+         study = "study 3") %>%
+  group_by(study, scale, epi_ctry, epi_sample, epi_subj) %>%
+  summarise(score = mean(response, na.rm = T)) %>%
+  ungroup() %>%
+  spread(scale, score) %>%
+  group_by(study) %>%
+  mutate_at(vars(ends_with("_score")), funs(std = scale(.))) %>%
+  ungroup() %>%
+  group_by(study, epi_ctry) %>%
+  mutate_at(vars(ends_with("_score")), funs(std2 = scale(.))) %>%
+  ungroup()
+```
+
+```{r}
+contrasts(d3$epi_ctry) <- contrasts_country
+contrasts(d3$epi_sample) <- cbind("_ch" = c(-1, 1))
+```
+
+
+# Demographics
+
+```{r}
+# all participants included in dataset
+d3 %>% distinct(epi_sample, epi_subj) %>% count(epi_sample)
+```
+
+```{r}
+# participants missing porosity vignettes score
+d3 %>% filter(is.na(por_score_std)) %>% count()
+
+# participants missing spiritual experiences score
+d3 %>% filter(is.na(spirit_score_std)) %>% count()
+
+# participants with complete data for primary analysis
+d3 %>% filter(!is.na(por_score_std),
+              !is.na(spirit_score_std)) %>% count()
+```
+
+
+# Predicting Spiritual Events
+
+## Attemping to fit more complex random effects structures
+
+```{r}
+r1a <- lmer(spirit_score_std ~ por_score_std + 
+              (1 + por_score_std | epi_ctry/epi_sample), d3) # failed to converge
+r1b <- lmer(spirit_score_std ~ por_score_std + 
+              (1 + por_score_std || epi_ctry/epi_sample), d3) # failed to converge
+r1c <- lmer(spirit_score_std ~ por_score_std + 
+              (1 + por_score_std | epi_ctry), d3) # failed to converge
+r1d <- lmer(spirit_score_std ~ por_score_std + 
+              (1 + por_score_std || epi_ctry), d3) # failed to converge
+r1e <- lmer(spirit_score_std ~ por_score_std + 
+              (0 + por_score_std| epi_ctry), d3) # ok, missing random intercepts
+r1f <- lmer(spirit_score_std ~ 0 + por_score_std + 
+              (1 + por_score_std| epi_ctry/epi_sample), d3) # singular
+
+```
+
+
+## Primary analysis
+
+```{r}
+r1 <- lmer(spirit_score_std ~ por_score_std + 
+             (1 | epi_ctry/epi_sample), d3)
+summary(r1)
+```
+
+```{r}
+rsquared(r1)
+```
+
+```{r}
+regtab_fun(r1) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_fun(r1)), color = "black")
+```
+
+```{r}
+# regtab_ran_fun(r1) %>%
+#   kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+#   kable_styling(font_size = 16) %>%
+#   row_spec(1:nrow(regtab_ran_fun(r1)), color = "black")
+```
+
+## Bayesian regression
+
+RESUME WORKING ON THIS LATER - currently errors due to MacOS Catalina
+
+```{r}
+# r1_bayes <- brm(spirit_score_std ~ por_score_std +
+#                   (1 | epi_ctry/epi_sample), d3,
+#                 control = list(adapt_delta = 0.99),
+#                 seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_bayes, "./models/r1_bayes.RDS")
+
+r1_bayes <- readRDS("./models/r1_bayes.RDS")
+
+summary(r1_bayes)
+```
+
+```{r}
+bayes_R2(r1_bayes)
+```
+
+```{r}
+regtab_fun(r1_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1_bayes)), color = "black")
+```
+
+```{r}
+summary(r1_bayes)
+regtab_ran_fun(r1_bayes) #%>%
+#   kable(align = "r") %>%
+#   kable_styling(font_size = 16) %>%
+#   row_spec(1:nrow(regtab_ran_fun(r1_bayes)), color = "black")
+```
+
+## Country and sample as fixed effects
+
+```{r}
+r2 <- lm(spirit_score_std ~ por_score_std * epi_ctry * epi_sample, d3) 
+summary(r2)
+```
+
+```{r}
+rsquared(r2)
+```
+
+```{r}
+regtab_fun(r2) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_fun(r2)), color = "black")
+```
+
+```{r}
+# regtab_ran_fun(r2) %>%
+#   kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+#   kable_styling(font_size = 16) %>%
+#   row_spec(1:nrow(regtab_ran_fun(r2)), color = "black")
+```
+
+
+
+# Predicting Other Extraordinary Events
+
+```{r}
+r3 <- lmer(other_score_std ~ por_score_std +
+             (1 | epi_ctry/epi_sample),
+           data = d3)
+summary(r3)
+```
+
+```{r}
+rsquared(r3)
+```
+
+```{r}
+regtab_fun(r3) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_fun(r3)), color = "black")
+```
+
+```{r}
+# regtab_ran_fun(r3) %>%
+#   kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+#   kable_styling(font_size = 16) %>%
+#   row_spec(1:nrow(regtab_ran_fun(r3)), color = "black")
+```

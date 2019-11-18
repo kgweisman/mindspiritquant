@@ -1,0 +1,405 @@
+---
+title: "Study 4"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    # theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we analyze Study 4: Confirmatory work with undergraduates.
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+source("../../scripts_general/var_recode_contrast.R")
+source("../scripts_s4/s4_var_groups.R")
+```
+
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+d4_byquestion_raw <- read_csv("../data/study4_byquestion.csv") %>%
+  select(-X1) %>%
+  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
+```
+
+```{r}
+d4_byquestion <- full_join(d4_byquestion_raw %>%
+                             select(p7_ctry, p7_subj, s4_var_pv) %>%
+                             gather(question, response, s4_var_pv) %>%
+                             mutate(scale = "pv_score"),
+                           d4_byquestion_raw %>%
+                             select(p7_ctry, p7_subj, s4_var_por) %>%
+                             gather(question, response, s4_var_por) %>%
+                             mutate(scale = "por_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_abs) %>%
+              gather(question, response, s4_var_abs) %>%
+              mutate(scale = "abs_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_dse) %>%
+              gather(question, response, s4_var_dse) %>%
+              mutate(scale = "dse_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_spev) %>%
+              gather(question, response, s4_var_spev) %>%
+              mutate(scale = "spev_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_hall) %>%
+              gather(question, response, s4_var_hall) %>%
+              mutate(scale = "hall_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_para) %>%
+              gather(question, response, s4_var_para) %>%
+              mutate(scale = "para_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_cog) %>%
+              gather(question, response, s4_var_cog) %>%
+              mutate(scale = "cog_score")) %>%
+  full_join(d4_byquestion_raw %>%
+              select(p7_ctry, p7_subj, s4_var_ctl) %>%
+              gather(question, response, s4_var_ctl) %>%
+              mutate(scale = "ctl_score"))
+```
+
+```{r}
+d4 <- d4_byquestion %>%
+  group_by(p7_subj, scale) %>%
+  mutate(score = mean(response, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(study = "study 4") %>%
+  distinct(study, p7_ctry, p7_subj, scale, score) %>%
+  spread(scale, score) %>%
+  group_by(study) %>%
+  mutate_at(vars(ends_with("_score")), funs(std = scale(.))) %>%
+  ungroup() %>%
+  group_by(p7_ctry) %%
+  mutate_at(vars(ends_with("_score")), funs(std2 = scale(.))) %>%
+  ungroup()
+  ## BOOKMARK FRIDAY PM
+```
+
+
+```{r}
+d4 <- read_csv("../data/Packet 7_CODED_March 18, 2019.csv") %>%
+  rename(country = p7_ctry,
+         abs_score = exwl,
+         dse_score = dse_01to14,
+         spev_score = spev) %>%
+  mutate(study = "study 4") %>%
+  group_by(study) %>%
+  mutate(abs_score_std = scale(abs_score),
+         dse_score_std = scale(dse_score),
+         spev_score_std = scale(spev_score)) %>%
+  ungroup() %>%
+  group_by(country) %>%
+  mutate(abs_score_std4 = scale(abs_score),
+         dse_score_std4 = scale(dse_score),
+         spev_score_std4 = scale(spev_score)) %>%
+  ungroup() %>%
+  mutate(country = factor(country, levels = tolower(levels_country),
+                          labels = levels_country))
+
+d4_byquestion <- read_csv("../data/packets123/packets123_data_byquestion_wide.csv") %>%
+  filter(packet == 1) %>%
+  rename(country = ctry) %>%
+  mutate(country = factor(country, levels = tolower(levels_country),
+                          labels = levels_country))
+```
+
+```{r}
+contrasts(d4_byquestion$country) <- contrasts_country
+contrasts(d4$country) <- contrasts_country
+```
+
+
+# Demographics
+
+```{r}
+# all participants included in dataset
+d4 %>% distinct(subj) %>% count()
+```
+
+```{r}
+# participants missing absorption score
+d4 %>% 
+  filter(is.na(abs_score)) %>% 
+  distinct(as.character(subj)) %>%
+  count()
+
+# participants missing daily spiritual experiences score
+d4 %>% 
+  filter(is.na(dse_score)) %>% 
+  distinct(as.character(subj)) %>% 
+  count()
+
+# participants missing spiritual events score
+d4 %>% 
+  filter(is.na(spev_score)) %>% 
+  distinct(as.character(subj)) %>% 
+  count()
+
+# participants with complete data for primary analysis
+d4 %>% 
+  filter(!is.na(abs_score),
+         !is.na(dse_score),
+         !is.na(spev_score)) %>% 
+  distinct(as.character(subj)) %>% 
+  count()
+```
+
+XX FILL IN MORE DEMOGRAPHICS
+
+
+# Predicting Spiritual Experiences
+
+```{r}
+d4_long <- d4 %>%
+  select(country, subj, abs_score_std, dse_score_std, spev_score_std) %>%
+  gather(spirit_scale, spirit_score_std, 
+         c(dse_score_std, spev_score_std)) %>%
+  mutate(spirit_scale = factor(spirit_scale, 
+                               levels = c("dse_score_std", "spev_score_std")))
+
+contrasts(d4_long$country) <- contrasts_country; contrasts(d4_long$country)
+contrasts(d4_long$spirit_scale) <- cbind("_spev" = c(-1, 1)); contrasts(d4_long$spirit_scale)
+```
+
+## Attempting to fit more complex random effects structures
+
+```{r}
+# more complex random effects structures: NOT REPORTED
+# note: never looking for intercepts (random or fixed) by scale, because standardized
+r1a <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (1 | country/subj) +
+              (0 + abs_score_std | country) +
+              (0 + abs_score_std | spirit_scale),
+            data = d4_long) # singular
+
+r1b <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (1 | country/subj) +
+              (0 + abs_score_std | country),
+            data = d4_long) # singular
+
+r1c <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (1 | country/subj) +
+              (0 + abs_score_std | spirit_scale),
+            data = d4_long) # overparameterized: only 1 df for testing main effect of abs_score
+
+r1d <- lmer(spirit_score_std ~ abs_score_std + 
+              (0 + abs_score_std | country) +
+              (0 + abs_score_std | spirit_scale),
+            data = d4_long) # fine, but doesn't reflect repeated measures design
+
+r1e <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (1 + abs_score_std | country), # singular
+            # (1 + abs_score_std || country), # failed to converge
+            data = d4_long) # singular
+
+r1f <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (1 | country/subj),
+            data = d4_long) # fine, but doesn't account for two scales
+
+r1g <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (0 + abs_score_std | spirit_scale),
+            data = d4_long) # overparameterized: only 1 df for testing main effect of abs_score
+
+r1h <- lmer(spirit_score_std ~ 1 + abs_score_std +
+              (1 + abs_score_std | country) + (1 | subj),
+            data = d4_long) # singular
+```
+
+```{r}
+r1i_dse <- lmer(dse_score_std ~ abs_score_std +
+                  (1 + abs_score_std | country), d4) # singular
+
+r1i_spev <- lmer(spev_score_std ~ abs_score_std +
+                   (1 + abs_score_std | country), d4) # singular
+```
+
+
+
+## Primary analysis
+
+### Daily Spiritual Experiences
+
+```{r}
+r1_dse <- lmer(dse_score_std ~ abs_score_std + 
+                 (1 + abs_score_std || country), d4)
+summary(r1_dse)
+```
+
+```{r}
+rsquared(r1_dse)
+```
+
+```{r}
+regtab_fun(r1_dse) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1_dse)), color = "black")
+```
+
+```{r}
+# regtab_ran_fun(r1_dse) %>%
+#   mutate(Group = case_when(is.na(Group) ~ "Participant, nested within Country",
+#                            TRUE ~ as.character(Group)),
+#          Group = factor(Group, levels = c("Country", 
+#                                           "Participant, nested within Country", 
+#                                           "Residual"))) %>%
+#   arrange(Group) %>%
+#   kable(align = "r") %>%
+#   kable_styling(font_size = 16) %>%
+#   row_spec(1:nrow(regtab_ran_fun(r1_dse)), color = "black")
+```
+
+### Spiritual Events
+
+```{r}
+r1_spev <- lmer(spev_score_std ~ abs_score_std + 
+                  (1 + abs_score_std || country), d4)
+summary(r1_spev)
+```
+
+```{r}
+rsquared(r1_spev)
+```
+
+```{r}
+regtab_fun(r1_spev) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1_spev)), color = "black")
+```
+
+```{r}
+# regtab_ran_fun(r1_spev) %>%
+#   mutate(Group = case_when(is.na(Group) ~ "Participant, nested within Country",
+#                            TRUE ~ as.character(Group)),
+#          Group = factor(Group, levels = c("Country", 
+#                                           "Participant, nested within Country", 
+#                                           "Residual"))) %>%
+#   arrange(Group) %>%
+#   kable(align = "r") %>%
+#   kable_styling(font_size = 16) %>%
+#   row_spec(1:nrow(regtab_ran_fun(r1_spev)), color = "black")
+```
+
+## Bayesian regression
+
+### Daily Spiritual Experiences
+
+```{r}
+# r1_dse_bayes <- brm(dse_score_std ~ abs_score_std +
+#                       (1 + abs_score_std || country), d4,
+#                     control = list(adapt_delta = 0.99),
+#                     seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_dse_bayes, "./models/r1_dse_bayes.RDS")
+
+r1_dse_bayes <- readRDS("./models/r1_dse_bayes.RDS")
+
+summary(r1_dse_bayes)
+```
+
+```{r}
+bayes_R2(r1_dse_bayes)
+```
+
+```{r}
+regtab_fun(r1_dse_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1_dse_bayes)), color = "black")
+```
+
+```{r}
+# XX NEED TO OVERWRITE "COUNTRY" FOR INDIVIDUAL SUBJECTS
+regtab_ran_fun(r1_dse_bayes) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(r1_dse_bayes)), color = "black")
+```
+
+### Spiritual Events
+
+```{r}
+# r1_spev_bayes <- brm(spev_score_std ~ abs_score_std +
+#                       (1 + abs_score_std || country), d4,
+#                     control = list(adapt_delta = 0.99),
+#                     seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_spev_bayes, "./models/r1_spev_bayes.RDS")
+
+r1_spev_bayes <- readRDS("./models/r1_spev_bayes.RDS")
+
+summary(r1_spev_bayes)
+```
+
+```{r}
+bayes_R2(r1_spev_bayes)
+```
+
+```{r}
+regtab_fun(r1_spev_bayes) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r1_spev_bayes)), color = "black")
+```
+
+```{r}
+# XX NEED TO OVERWRITE "COUNTRY" FOR INDIVIDUAL SUBJECTS
+regtab_ran_fun(r1_spev_bayes) %>%
+  kable(align = "r") %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(1:nrow(regtab_ran_fun(r1_spev_bayes)), color = "black")
+```
+
+## Country as fixed effect
+
+### Daily Spiritual Experiences
+
+```{r}
+r2_dse <- lm(dse_score_std ~ abs_score_std * country, d4)
+summary(r2_dse)
+```
+
+```{r}
+rsquared(r2_dse)
+```
+
+```{r}
+regtab_fun(r2_dse) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r2_dse)), color = "black")
+```
+
+
+### Spiritual Events
+
+```{r}
+r2_spev <- lm(spev_score_std ~ abs_score_std * country, d4)
+summary(r2_spev)
+```
+
+```{r}
+rsquared(r2_spev)
+```
+
+```{r}
+regtab_fun(r2_spev) %>%
+  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
+  kable_styling(font_size = 16) %>%
+  row_spec(2, bold = T) %>%
+  row_spec(1:nrow(regtab_fun(r2_spev)), color = "black")
+```
+
+

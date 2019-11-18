@@ -1,0 +1,322 @@
+---
+title: "Study 2: Supplemental analyses"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we conduct additional analyses for Study 2: Pen-and-paper surveys with undergraduates (as discussed in Supplemental Information).
+
+```{r}
+source("../../scripts_general/dependencies.R")
+source("../../scripts_general/custom_funs.R")
+source("../../scripts_general/var_recode_contrast.R")
+source("../scripts_s2/s2_var_groups.R")
+```
+
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+d2 <- read_csv("../data/packets123/packets123_data_bysubscale_wide.csv") %>%
+  filter(packet == 1) %>%
+  rename(country = ctry,
+         abs_score = exwl,
+         dse_score = dse_01to14,
+         spev_score = spev) %>%
+  mutate(study = "study 2") %>%
+  group_by(study) %>%
+  mutate(abs_score_std = scale(abs_score),
+         dse_score_std = scale(dse_score),
+         spev_score_std = scale(spev_score)) %>%
+  ungroup() %>%
+  group_by(country) %>%
+  mutate(abs_score_std2 = scale(abs_score),
+         dse_score_std2 = scale(dse_score),
+         spev_score_std2 = scale(spev_score)) %>%
+  ungroup() %>%
+  mutate(country = factor(country, levels = tolower(levels_country),
+                          labels = levels_country))
+
+d2_byquestion <- read_csv("../data/packets123/packets123_data_byquestion_wide.csv") %>%
+  filter(packet == 1) %>%
+  rename(country = ctry) %>%
+  mutate(country = factor(country, levels = tolower(levels_country),
+                          labels = levels_country))
+```
+
+```{r}
+contrasts(d2_byquestion$country) <- contrasts_country
+contrasts(d2$country) <- contrasts_country
+```
+
+```{r}
+s2_sub <- levels((d2_byquestion %>% 
+                    filter(packet == 1) %>% 
+                    mutate(subj = factor(subj)) %>% 
+                    select(subj))$subj)
+```
+
+
+# Missing data
+
+```{r}
+# by scale, question
+d2_byquestion %>%
+  filter(subj %in% s2_sub, packet == 1) %>% 
+  select(subj, s2_var_abs, s2_var_dse, s2_var_spev) %>%
+  gather(question, response, -subj) %>%
+  mutate(scale = gsub("_.*$", "", question)) %>%
+  count(scale, response) %>%
+  group_by(scale) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup() %>%
+  filter(is.na(response))
+```
+
+```{r}
+# by scale, participant
+d2_byquestion %>%
+  filter(subj %in% s2_sub, packet == 1) %>% 
+  select(subj, s2_var_abs, s2_var_dse, s2_var_spev) %>%
+  gather(question, response, -subj) %>%
+  mutate(scale = gsub("_.*$", "", question)) %>%
+  count(scale, subj, response) %>%
+  filter(is.na(response)) %>%
+  count(scale) %>%
+  mutate(prop = n/519)
+```
+
+```{r}
+# so-called attention checks
+d2_byquestion %>%
+  filter(subj %in% s2_sub, packet == 1) %>% 
+  select(subj, exwl_attn, dse_attn, spev_attn) %>%
+  gather(question, response, -subj) %>%
+  count(question, response) %>%
+  group_by(question) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup() # %>%
+  # filter(is.na(response))
+```
+
+
+# Reliability
+
+```{r}
+d_alpha_abs <- data.frame()
+for(i in c(levels(d2$country), "ALL")){
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d2_byquestion, 
+                                      which_vars = s2_var_abs,
+                                      which_country = i))
+  d_alpha_abs <- bind_rows(d_alpha_abs, res)
+  rm(res)
+}
+```
+
+```{r}
+d_alpha_dse <- data.frame()
+for(i in c(levels(d2$country), "ALL")){
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d2_byquestion, 
+                                      which_vars = s2_var_dse,
+                                      which_country = i))
+  d_alpha_dse <- bind_rows(d_alpha_dse, res)
+  rm(res)
+}
+```
+
+```{r}
+d_alpha_spev <- data.frame()
+for(i in c(levels(d2$country), "ALL")){
+  # hacky way of omitting spev_07 for China because sd(spev_07) ~ 0
+  if(i == "China"){
+    v <- s2_var_spev[s2_var_spev != "spev_07"]
+  } else {
+    v <- s2_var_spev
+  }
+
+  res <- data.frame(country = i, 
+                    alpha = alpha_fun(d2_byquestion, 
+                                      which_vars = v,
+                                      which_country = i,
+                                      which_use = "pairwise.complete.obs"))
+  d_alpha_spev <- bind_rows(d_alpha_spev, res)
+  rm(res, v)
+}
+```
+
+
+```{r}
+bind_rows(d_alpha_abs %>% mutate(scale = "Absorption"),
+          d_alpha_dse %>% mutate(scale = "Daily Spiritual Experiences"),
+          d_alpha_spev %>% mutate(scale = "Spiritual Events")) %>%
+  select(scale, country, alpha) %>%
+  mutate(scale = factor(scale,
+                        levels = c("Absorption", "Daily Spiritual Experiences",
+                                   "Spiritual Events")), 
+         country = factor(country, levels = c(levels_country, "ALL"))) %>%
+  spread(country, alpha) %>%
+  kable(digits = 2) %>%
+  kable_styling() %>%
+  column_spec(7, bold = T)
+```
+
+
+# Primary analysis, by country
+
+## Daily Spiritual Experiences
+
+```{r}
+r1_dse_us <- lm(dse_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "US"))
+summary(r1_dse_us)
+```
+
+```{r}
+r1_dse_gh <- lm(dse_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Ghana"))
+summary(r1_dse_gh)
+```
+
+```{r}
+r1_dse_th <- lm(dse_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Thailand"))
+summary(r1_dse_th)
+```
+
+```{r}
+r1_dse_ch <- lm(dse_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "China"))
+summary(r1_dse_ch)
+```
+
+```{r}
+r1_dse_vt <- lm(dse_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Vanuatu"))
+summary(r1_dse_vt)
+```
+
+
+## Spiritual Events
+
+```{r}
+r1_spev_us <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "US"))
+summary(r1_spev_us)
+```
+
+```{r}
+r1_spev_gh <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Ghana"))
+summary(r1_spev_gh)
+```
+
+```{r}
+r1_spev_th <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Thailand"))
+summary(r1_spev_th)
+```
+
+```{r}
+r1_spev_ch <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "China"))
+summary(r1_spev_ch)
+```
+
+```{r}
+r1_spev_vt <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Vanuatu"))
+summary(r1_spev_vt)
+```
+
+## Model comparison
+
+```{r}
+r1_bycountry_df <- rbind(
+  summary(r1_dse_us)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "US", scale = "Daily Spiritual Experiences"),
+  summary(r1_dse_gh)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Ghana", scale = "Daily Spiritual Experiences"),
+  summary(r1_dse_th)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Thailand", scale = "Daily Spiritual Experiences"),
+  summary(r1_dse_ch)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "China", scale = "Daily Spiritual Experiences"),
+  summary(r1_dse_vt)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Vanuatu", scale = "Daily Spiritual Experiences"),
+  summary(r1_spev_us)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "US", scale = "Spiritual Events"),
+  summary(r1_spev_gh)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Ghana", scale = "Spiritual Events"),
+  summary(r1_spev_th)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Thailand", scale = "Spiritual Events"),
+  summary(r1_spev_ch)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "China", scale = "Spiritual Events"),
+  summary(r1_spev_vt)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Vanuatu", scale = "Spiritual Events")) %>%
+  mutate(Parameter = recode_factor(Parameter,
+                                   "(Intercept)" = "Intercept",
+                                   "abs_score_std2" = "Absorption")) %>%
+  rename(β = Estimate, `Std. Error` = Std..Error, t = t.value,
+          p = Pr...t.., Country = country, Scale = scale)
+```
+
+```{r}
+r1_bycountry_df %>% filter(Parameter == "Absorption") %>%
+  select(Scale, Country, β, `Std. Error`, t, p) %>%
+  mutate(signif = case_when(p < 0.001 ~ "***",
+                            p < 0.01 ~ "**",
+                            p < 0.05 ~ "*",
+                            TRUE ~ ""),
+         p = case_when(p < 0.001 ~ "<0.001",
+                       TRUE ~ format(round(p, 3), nsmall = 3))) %>%
+  rename(" " = signif) %>%
+  kable(digits = 2, align = c(rep("l", 2), rep("r", 4), "l")) %>%
+  kable_styling() %>%
+  collapse_rows(1:2)
+```
+
+```{r}
+r1_bycountry_df %>% 
+  filter(Parameter == "Absorption") %>%
+  filter(!(Country == "Vanuatu" & Scale == "Daily Spiritual Experiences")) %>%
+  group_by(Scale) %>%
+  summarise(min_beta = min(β),
+            max_beta = max(β),
+            min_p = min(p),
+            max_p = max(p)) %>%
+  mutate_at(vars(contains("min_"), contains("max_")),
+            funs(round(., 3)))
+```
+
+```{r}
+d2 %>% 
+  filter(subj %in% s2_sub) %>%
+  distinct(country, subj) %>% 
+  count(country)
+```
