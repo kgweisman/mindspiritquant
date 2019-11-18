@@ -124,15 +124,20 @@ regtab_ran_fun <- function(reg,
   if ("lmerModLmerTest" %in% reg_class) {
     regtab <- summary(reg)$varcor %>%
       data.frame() %>%
-      select(grp, var1, vcov, sdcor)
+      select(grp, var1, vcov, sdcor) %>%
+      mutate(grp = gsub("\\..*$", "", grp))
     
     levels_grp <- c(regtab[(nrow(regtab) - 1):1,"grp"], 
-                    regtab[nrow(regtab),"grp"])
+                    regtab[nrow(regtab),"grp"]) %>% unique()
+    
+    levels_var1 <- c("(Intercept)", por_var, abs_var,
+                     country_var, site_var, religion_var)
     
     regtab <- regtab %>%
-      mutate(grp = factor(grp, levels = levels_grp)) %>%
-      arrange(grp) %>%
-      mutate(grp = as.character(grp)) %>%
+      mutate(grp = factor(grp, levels = levels_grp),
+             var1 = factor(var1, levels = levels_var1)) %>%
+      arrange(grp, var1) %>%
+      mutate_at(vars(grp, var1), funs(as.character)) %>%
       mutate_at(vars(grp, var1), funs(gsub("\\(", "", .))) %>%
       mutate_at(vars(grp, var1), funs(gsub("\\)", "", .))) %>%
       rename(Group = grp, Type = var1, Variance = vcov, `Std. Dev.` = sdcor) %>%
@@ -147,20 +152,22 @@ regtab_ran_fun <- function(reg,
     for (i in 1:length(regsum$group)) {
       temptab <- regsum$random[[regsum$group[i]]] %>%
         data.frame() %>%
-        bind_cols("grp" = regsum$group[[i]])
+        rownames_to_column("Type") %>%
+        mutate(grp = regsum$group[[i]])
       rantab <- bind_rows(rantab, temptab)
     }
     
     resid <- regsum$spec_pars %>%
       data.frame() %>%
-      bind_cols("grp" = "Residual")
+      bind_cols("grp" = "Residual", Type = "sd(Intercept)")
     
     regtab <- bind_rows(rantab, resid) %>%
       rename(Group = grp, `Std. Dev.` = Estimate) %>%
       mutate(Variance = `Std. Dev.`^2,
-             Type = "") %>%
+             Type = gsub("sd\\(", "", Type),
+             Type = gsub("\\)", "", Type)) %>%
       select(Group, Type, Variance, `Std. Dev.`) %>%
-      separate(Group, c("grp1", "grp2", "grp3", "grp4", "grp5")) %>%
+      separate(Group, c("grp1", "grp2", "grp3", "grp4", "grp5"), sep = ":") %>%
       unite(Group, c(grp5, grp4, grp3, grp2, grp1), sep = ", nested within ") %>%
       mutate(Group = gsub("NA, nested within ", "", Group))
     
@@ -171,7 +178,9 @@ regtab_ran_fun <- function(reg,
               funs(format(round(., 2), nsmall = 2))) %>%
     mutate_at(vars(Group, Type),
               funs(str_replace_all(string = ., var_key))) %>%
-    mutate(Type = case_when(is.na(Type) ~ "", TRUE ~ Type))
+    mutate(Type = case_when(is.na(Type) ~ "", 
+                            Type == "Intercept" ~ Type,
+                            TRUE ~ paste0("Slope (", Type, ")")))
   
   return(regtab)
 }

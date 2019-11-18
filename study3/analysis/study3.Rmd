@@ -166,22 +166,15 @@ rsquared(r1)
 ```
 
 ```{r}
-regtab_fun(r1) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_fun(r1)), color = "black")
+regtab_fun(r1, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
-# regtab_ran_fun(r1) %>%
-#   kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-#   kable_styling(font_size = 16) %>%
-#   row_spec(1:nrow(regtab_ran_fun(r1)), color = "black")
+regtab_ran_fun(r1, country_var = "epi_ctry", religion_var = "epi_sample") %>% 
+  regtab_style_fun()
 ```
 
 ## Bayesian regression
-
-RESUME WORKING ON THIS LATER - currently errors due to MacOS Catalina
 
 ```{r}
 # r1_bayes <- brm(spirit_score_std ~ por_score_std +
@@ -200,19 +193,15 @@ bayes_R2(r1_bayes)
 ```
 
 ```{r}
-regtab_fun(r1_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_bayes)), color = "black")
+regtab_fun(r1_bayes, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
-summary(r1_bayes)
-regtab_ran_fun(r1_bayes) #%>%
-#   kable(align = "r") %>%
-#   kable_styling(font_size = 16) %>%
-#   row_spec(1:nrow(regtab_ran_fun(r1_bayes)), color = "black")
+regtab_ran_fun(r1_bayes, 
+               country_var = "epi_ctry", 
+               religion_var = "epi_sample", 
+               religion_name = "Sample") %>% 
+  regtab_style_fun()
 ```
 
 ## Country and sample as fixed effects
@@ -227,19 +216,16 @@ rsquared(r2)
 ```
 
 ```{r}
-regtab_fun(r2) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_fun(r2)), color = "black")
+regtab_fun(r2, 
+           por_name = "Porosity Vignettes", 
+           country_var1 = "epi_ctry_gh",
+           country_var2 = "epi_ctry_th",
+           country_var3 = "epi_ctry_ch",
+           country_var4 = "epi_ctry_vt",
+           religion_var = "epi_sample_ch",
+           religion_name = "Sample (Ch.)") %>% 
+  regtab_style_fun(row_emph = 2)
 ```
-
-```{r}
-# regtab_ran_fun(r2) %>%
-#   kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-#   kable_styling(font_size = 16) %>%
-#   row_spec(1:nrow(regtab_ran_fun(r2)), color = "black")
-```
-
 
 
 # Predicting Other Extraordinary Events
@@ -256,15 +242,13 @@ rsquared(r3)
 ```
 
 ```{r}
-regtab_fun(r3) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_fun(r3)), color = "black")
+regtab_fun(r3, por_name = "Porosity Vignettes") %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
-# regtab_ran_fun(r3) %>%
-#   kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-#   kable_styling(font_size = 16) %>%
-#   row_spec(1:nrow(regtab_ran_fun(r3)), color = "black")
+regtab_ran_fun(r3, 
+               country_var = "epi_ctry", 
+               religion_var = "epi_sample",
+               religion_name = "Sample") %>% 
+  regtab_style_fun()
 ```
