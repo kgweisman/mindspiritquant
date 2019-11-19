@@ -3,7 +3,7 @@ title: "Study 4"
 subtitle: "Luhrmann, Weisman, et al."
 output: 
   html_notebook:
-    # theme: flatly
+    theme: flatly
     toc: true
     toc_float: true
 ---
@@ -14,7 +14,6 @@ In this notebook, we analyze Study 4: Confirmatory work with undergraduates.
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
-source("../scripts_s4/s4_var_groups.R")
 ```
 
 ```{r}
@@ -25,6 +24,8 @@ theme_set(theme_bw())
 d4_byquestion_raw <- read_csv("../data/study4_byquestion.csv") %>%
   select(-X1) %>%
   mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
+
+source("../scripts_s4/s4_var_groups.R")
 ```
 
 ```{r}
@@ -63,57 +64,36 @@ d4_byquestion <- full_join(d4_byquestion_raw %>%
   full_join(d4_byquestion_raw %>%
               select(p7_ctry, p7_subj, s4_var_ctl) %>%
               gather(question, response, s4_var_ctl) %>%
-              mutate(scale = "ctl_score"))
+              mutate(scale = "ctl_score")) %>%
+  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
 ```
 
 ```{r}
-d4 <- d4_byquestion %>%
+d4_0 <- d4_byquestion %>%
   group_by(p7_subj, scale) %>%
   mutate(score = mean(response, na.rm = T)) %>%
   ungroup() %>%
   mutate(study = "study 4") %>%
   distinct(study, p7_ctry, p7_subj, scale, score) %>%
-  spread(scale, score) %>%
+  spread(scale, score)
+
+d4_std <- d4_0 %>%
   group_by(study) %>%
-  mutate_at(vars(ends_with("_score")), funs(std = scale(.))) %>%
-  ungroup() %>%
-  group_by(p7_ctry) %%
-  mutate_at(vars(ends_with("_score")), funs(std2 = scale(.))) %>%
+  mutate_at(vars(ends_with("_score")), funs(std = scale)) %>%
   ungroup()
-  ## BOOKMARK FRIDAY PM
-```
 
+d4_std2 <- d4_0 %>%
+  group_by(study, p7_ctry) %>%
+  mutate_at(vars(ends_with("_score")), funs(std2 = scale)) %>%
+  ungroup()
 
-```{r}
-d4 <- read_csv("../data/Packet 7_CODED_March 18, 2019.csv") %>%
-  rename(country = p7_ctry,
-         abs_score = exwl,
-         dse_score = dse_01to14,
-         spev_score = spev) %>%
-  mutate(study = "study 4") %>%
-  group_by(study) %>%
-  mutate(abs_score_std = scale(abs_score),
-         dse_score_std = scale(dse_score),
-         spev_score_std = scale(spev_score)) %>%
-  ungroup() %>%
-  group_by(country) %>%
-  mutate(abs_score_std4 = scale(abs_score),
-         dse_score_std4 = scale(dse_score),
-         spev_score_std4 = scale(spev_score)) %>%
-  ungroup() %>%
-  mutate(country = factor(country, levels = tolower(levels_country),
-                          labels = levels_country))
-
-d4_byquestion <- read_csv("../data/packets123/packets123_data_byquestion_wide.csv") %>%
-  filter(packet == 1) %>%
-  rename(country = ctry) %>%
-  mutate(country = factor(country, levels = tolower(levels_country),
-                          labels = levels_country))
+d4 <- d4_0 %>% full_join(d4_std) %>% full_join(d4_std2) %>%
+  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
 ```
 
 ```{r}
-contrasts(d4_byquestion$country) <- contrasts_country
-contrasts(d4$country) <- contrasts_country
+contrasts(d4_byquestion$p7_ctry) <- contrasts_country
+contrasts(d4$p7_ctry) <- contrasts_country
 ```
 
 
@@ -121,35 +101,96 @@ contrasts(d4$country) <- contrasts_country
 
 ```{r}
 # all participants included in dataset
-d4 %>% distinct(subj) %>% count()
+d4 %>% distinct(p7_subj) %>% count()
 ```
 
 ```{r}
+# participants missing porosity scale score
+d4 %>% 
+  filter(is.na(por_score)) %>% 
+  distinct(as.character(p7_subj)) %>%
+  count()
+
+# participants missing porosity vignettes score
+d4 %>% 
+  filter(is.na(pv_score)) %>% 
+  distinct(as.character(p7_subj)) %>%
+  count()
+
 # participants missing absorption score
 d4 %>% 
   filter(is.na(abs_score)) %>% 
-  distinct(as.character(subj)) %>%
+  distinct(as.character(p7_subj)) %>%
   count()
 
 # participants missing daily spiritual experiences score
 d4 %>% 
   filter(is.na(dse_score)) %>% 
-  distinct(as.character(subj)) %>% 
+  distinct(as.character(p7_subj)) %>% 
   count()
 
 # participants missing spiritual events score
 d4 %>% 
   filter(is.na(spev_score)) %>% 
-  distinct(as.character(subj)) %>% 
+  distinct(as.character(p7_subj)) %>% 
   count()
+
+# participants missing hallucinations score
+d4 %>% 
+  filter(is.na(hall_score)) %>% 
+  distinct(as.character(p7_subj)) %>% 
+  count()
+
+# participants missing paranormal score
+d4 %>% 
+  filter(is.na(para_score)) %>% 
+  distinct(as.character(p7_subj)) %>% 
+  count()
+
+# participants missing sense of control score
+d4 %>% 
+  filter(is.na(ctl_score)) %>% 
+  distinct(as.character(p7_subj)) %>% 
+  count()
+
+# participants missing need for cognition score
+d4 %>% 
+  filter(is.na(cog_score)) %>% 
+  distinct(as.character(p7_subj)) %>% 
+  count()
+
 
 # participants with complete data for primary analysis
 d4 %>% 
-  filter(!is.na(abs_score),
+  filter(!is.na(por_score),
+         !is.na(pv_score),
+         !is.na(abs_score),
          !is.na(dse_score),
-         !is.na(spev_score)) %>% 
-  distinct(as.character(subj)) %>% 
+         !is.na(spev_score),
+         !is.na(hall_score),
+         !is.na(para_score),
+         !is.na(ctl_score),
+         !is.na(cog_score)) %>% 
+  distinct(as.character(p7_subj)) %>% 
   count()
+```
+
+```{r}
+s4_sub <- d4 %>% 
+  filter(!is.na(por_score),
+         !is.na(pv_score),
+         !is.na(abs_score),
+         !is.na(dse_score),
+         !is.na(spev_score),
+         !is.na(hall_score),
+         !is.na(para_score),
+         !is.na(ctl_score),
+         !is.na(cog_score)) %>% 
+  mutate(p7_subj = as.character(p7_subj)) %>%
+  distinct(p7_subj)
+
+d4x <- d4 %>% filter(p7_subj %in% s4_sub$p7_subj)
+d4x_byquestion <- d4_byquestion %>% filter(p7_subj %in% s4_sub$p7_subj)
 ```
 
 XX FILL IN MORE DEMOGRAPHICS
@@ -159,247 +200,353 @@ XX FILL IN MORE DEMOGRAPHICS
 
 ```{r}
 d4_long <- d4 %>%
-  select(country, subj, abs_score_std, dse_score_std, spev_score_std) %>%
+  select(p7_ctry, p7_subj, 
+         por_score_std, pv_score_std, abs_score_std, dse_score_std, spev_score_std) %>%
   gather(spirit_scale, spirit_score_std, 
          c(dse_score_std, spev_score_std)) %>%
   mutate(spirit_scale = factor(spirit_scale, 
                                levels = c("dse_score_std", "spev_score_std")))
 
-contrasts(d4_long$country) <- contrasts_country; contrasts(d4_long$country)
+contrasts(d4_long$p7_ctry) <- contrasts_country; contrasts(d4_long$p7_ctry)
 contrasts(d4_long$spirit_scale) <- cbind("_spev" = c(-1, 1)); contrasts(d4_long$spirit_scale)
 ```
 
 ## Attempting to fit more complex random effects structures
 
 ```{r}
-# more complex random effects structures: NOT REPORTED
-# note: never looking for intercepts (random or fixed) by scale, because standardized
-r1a <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (1 | country/subj) +
-              (0 + abs_score_std | country) +
-              (0 + abs_score_std | spirit_scale),
-            data = d4_long) # singular
+r1a <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+              (1 + por_score_std * abs_score_std | p7_ctry), d4_long) # singular
+r1b <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+              (1 + por_score_std * abs_score_std || p7_ctry), d4_long) # singular
+r1c <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+              (1 + por_score_std + abs_score_std || p7_ctry), d4_long) # singular
+r1d <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+              (1 | p7_ctry), d4_long) # fine, but doesn't include scale or repeated measures
+r1e <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+              (1 | p7_ctry/p7_subj), d4_long) # fine, but doesn't include scale
+r1f <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+              (1 | p7_ctry/p7_subj) + (1 | spirit_scale), d4_long) # singular
 
-r1b <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (1 | country/subj) +
-              (0 + abs_score_std | country),
-            data = d4_long) # singular
-
-r1c <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (1 | country/subj) +
-              (0 + abs_score_std | spirit_scale),
-            data = d4_long) # overparameterized: only 1 df for testing main effect of abs_score
-
-r1d <- lmer(spirit_score_std ~ abs_score_std + 
-              (0 + abs_score_std | country) +
-              (0 + abs_score_std | spirit_scale),
-            data = d4_long) # fine, but doesn't reflect repeated measures design
-
-r1e <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (1 + abs_score_std | country), # singular
-            # (1 + abs_score_std || country), # failed to converge
-            data = d4_long) # singular
-
-r1f <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (1 | country/subj),
-            data = d4_long) # fine, but doesn't account for two scales
-
-r1g <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (0 + abs_score_std | spirit_scale),
-            data = d4_long) # overparameterized: only 1 df for testing main effect of abs_score
-
-r1h <- lmer(spirit_score_std ~ 1 + abs_score_std +
-              (1 + abs_score_std | country) + (1 | subj),
-            data = d4_long) # singular
+r1f1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std + 
+               (1 | p7_ctry/p7_subj) + (1 | spirit_scale), d4_long) # singular
 ```
 
 ```{r}
-r1i_dse <- lmer(dse_score_std ~ abs_score_std +
-                  (1 + abs_score_std | country), d4) # singular
-
-r1i_spev <- lmer(spev_score_std ~ abs_score_std +
-                   (1 + abs_score_std | country), d4) # singular
-```
-
-
-
-## Primary analysis
-
-### Daily Spiritual Experiences
-
-```{r}
-r1_dse <- lmer(dse_score_std ~ abs_score_std + 
-                 (1 + abs_score_std || country), d4)
-summary(r1_dse)
+temp <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+               (1 | p7_ctry/p7_subj) + 
+               # (0 + por_score_std * abs_score_std | spirit_scale), # singular
+               # (0 + por_score_std * abs_score_std || spirit_scale), # singular
+               (0 + por_score_std + abs_score_std || spirit_scale), #only 1df for abs
+             # (0 + por_score_std | spirit_scale), #only <2df for por
+             # (0 + abs_score_std | spirit_scale), # fails to converge
+             d4_long)
+summary(temp)
 ```
 
 ```{r}
-rsquared(r1_dse)
+r1g_por <- lmer(spirit_score_std ~ por_score_std * abs_score_std * spirit_scale +
+                  (1 | p7_ctry/p7_subj), d4_long) # fine
+regtab_fun(r1g_por, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 2:3)
+regtab_ran_fun(r1g_por, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
 ```{r}
-regtab_fun(r1_dse) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_dse)), color = "black")
+r1g_pv <- lmer(spirit_score_std ~ por_score_std * abs_score_std * spirit_scale +
+                 (1 | p7_ctry/p7_subj), d4_long) # fine
+regtab_fun(r1g_pv, por_name = "Porosity Vignettes") %>% regtab_style_fun(row_emph = 2:3)
+regtab_ran_fun(r1g_pv, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
 ```{r}
-# regtab_ran_fun(r1_dse) %>%
-#   mutate(Group = case_when(is.na(Group) ~ "Participant, nested within Country",
-#                            TRUE ~ as.character(Group)),
-#          Group = factor(Group, levels = c("Country", 
-#                                           "Participant, nested within Country", 
-#                                           "Residual"))) %>%
-#   arrange(Group) %>%
-#   kable(align = "r") %>%
-#   kable_styling(font_size = 16) %>%
-#   row_spec(1:nrow(regtab_ran_fun(r1_dse)), color = "black")
-```
-
-### Spiritual Events
-
-```{r}
-r1_spev <- lmer(spev_score_std ~ abs_score_std + 
-                  (1 + abs_score_std || country), d4)
-summary(r1_spev)
+r1h_dse <- lmer(dse_score_std ~ por_score_std * abs_score_std + (1 | p7_ctry), d4)
+regtab_fun(r1h_dse, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-rsquared(r1_spev)
+r1h_spev <- lmer(spev_score_std ~ por_score_std * abs_score_std + (1 | p7_ctry), d4)
+regtab_fun(r1h_spev, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 2:3)
+```
+
+
+```{r}
+r1i_dse <- lmer(dse_score_std ~ pv_score_std * abs_score_std + (1 | p7_ctry), d4)
+regtab_fun(r1i_dse, 
+           por_var = "pv_score_std",
+           por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_fun(r1_spev) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_spev)), color = "black")
+r1i_spev <- lmer(spev_score_std ~ pv_score_std * abs_score_std + (1 | p7_ctry), d4)
+regtab_fun(r1i_spev,
+           por_var = "pv_score_std",
+           por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-# regtab_ran_fun(r1_spev) %>%
-#   mutate(Group = case_when(is.na(Group) ~ "Participant, nested within Country",
-#                            TRUE ~ as.character(Group)),
-#          Group = factor(Group, levels = c("Country", 
-#                                           "Participant, nested within Country", 
-#                                           "Residual"))) %>%
-#   arrange(Group) %>%
-#   kable(align = "r") %>%
-#   kable_styling(font_size = 16) %>%
-#   row_spec(1:nrow(regtab_ran_fun(r1_spev)), color = "black")
+# XX BOOKMARK: not good because doubles size of dataset!
+# r1j_spev <- lmer(spev_score_std ~ POR * abs_score_std +
+#                    (1 | p7_ctry) + (1 | por_scale),
+#                  d4 %>%
+#                    distinct(p7_ctry, p7_subj, spev_score_std, abs_score_std,
+#                             por_score_std, pv_score_std) %>%
+#                    gather(por_scale, POR, c(por_score_std, pv_score_std)) %>%
+#                    mutate(por_scale = factor(por_scale)),
+#                  contrasts = list(por_scale = "contr.sum"))
+# regtab_fun(r1j_spev,
+#            por_var = "POR",
+#            por_name = "POROSITY (overall)") %>%
+#   regtab_style_fun(row_emph = 2:3)
 ```
 
-## Bayesian regression
 
-### Daily Spiritual Experiences
+
+## Primary analyses
+
+### Porosity Scale
 
 ```{r}
-# r1_dse_bayes <- brm(dse_score_std ~ abs_score_std +
-#                       (1 + abs_score_std || country), d4,
-#                     control = list(adapt_delta = 0.99),
-#                     seed = 1234, cores = 4, chains = 4)
-# saveRDS(r1_dse_bayes, "./models/r1_dse_bayes.RDS")
-
-r1_dse_bayes <- readRDS("./models/r1_dse_bayes.RDS")
-
-summary(r1_dse_bayes)
+r1_por <- lmer(spirit_score_std ~ por_score_std * spirit_scale +
+                 (1 | p7_ctry/p7_subj), d4_long) 
+regtab_fun(r1_por, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r1_por, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
+### Porosity Vignettes
+
 ```{r}
-bayes_R2(r1_dse_bayes)
+r1_pv <- lmer(spirit_score_std ~ pv_score_std * spirit_scale +
+                (1 | p7_ctry/p7_subj), d4_long) 
+regtab_fun(r1_pv, por_name = "Porosity Vignettes") %>% regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r1_pv, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
+### Absorption
+
 ```{r}
-regtab_fun(r1_dse_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_dse_bayes)), color = "black")
+r1_abs <- lmer(spirit_score_std ~ abs_score_std * spirit_scale +
+                 (1 | p7_ctry/p7_subj), d4_long) 
+regtab_fun(r1_abs) %>% regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r1_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
+## Within each site considered alone
+
 ```{r}
-# XX NEED TO OVERWRITE "COUNTRY" FOR INDIVIDUAL SUBJECTS
-regtab_ran_fun(r1_dse_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r1_dse_bayes)), color = "black")
+d4_long_bycountry <- d4 %>%
+  select(p7_ctry, p7_subj, 
+         por_score_std2, pv_score_std2, abs_score_std2, 
+         dse_score_std2, spev_score_std2) %>%
+  gather(spirit_scale, spirit_score_std2, 
+         c(dse_score_std2, spev_score_std2)) %>%
+  mutate(spirit_scale = factor(spirit_scale, 
+                               levels = c("dse_score_std2", "spev_score_std2")))
+
+contrasts(d4_long_bycountry$p7_ctry) <- contrasts_country; contrasts(d4_long$p7_ctry)
+contrasts(d4_long_bycountry$spirit_scale) <- cbind("_spev" = c(-1, 1)); contrasts(d4_long_bycountry$spirit_scale)
 ```
 
-### Spiritual Events
+### Porosity Scale
 
 ```{r}
-# r1_spev_bayes <- brm(spev_score_std ~ abs_score_std +
-#                       (1 + abs_score_std || country), d4,
-#                     control = list(adapt_delta = 0.99),
-#                     seed = 1234, cores = 4, chains = 4)
-# saveRDS(r1_spev_bayes, "./models/r1_spev_bayes.RDS")
-
-r1_spev_bayes <- readRDS("./models/r1_spev_bayes.RDS")
-
-summary(r1_spev_bayes)
-```
-
-```{r}
-bayes_R2(r1_spev_bayes)
-```
-
-```{r}
-regtab_fun(r1_spev_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_spev_bayes)), color = "black")
-```
-
-```{r}
-# XX NEED TO OVERWRITE "COUNTRY" FOR INDIVIDUAL SUBJECTS
-regtab_ran_fun(r1_spev_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r1_spev_bayes)), color = "black")
-```
-
-## Country as fixed effect
-
-### Daily Spiritual Experiences
-
-```{r}
-r2_dse <- lm(dse_score_std ~ abs_score_std * country, d4)
-summary(r2_dse)
+r1_por_us <- lmer(spirit_score_std2 ~ por_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "US")) 
+r1_por_gh <- lmer(spirit_score_std2 ~ por_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Ghana")) 
+r1_por_th <- lmer(spirit_score_std2 ~ por_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Thailand")) 
+r1_por_ch <- lmer(spirit_score_std2 ~ por_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "China")) 
+r1_por_vt <- lmer(spirit_score_std2 ~ por_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Vanuatu")) 
 ```
 
 ```{r}
-rsquared(r2_dse)
+r1_por_bycountry <- bind_rows(
+  r1_por_us %>% 
+    regtab_fun(por_var = "por_score_std2", por_name = "Porosity Scale") %>% 
+    mutate(Country = "US"),
+  r1_por_gh %>% 
+    regtab_fun(por_var = "por_score_std2", por_name = "Porosity Scale") %>% 
+    mutate(Country = "Ghana"),
+  r1_por_th %>% 
+    regtab_fun(por_var = "por_score_std2", por_name = "Porosity Scale") %>% 
+    mutate(Country = "Thailand"),
+  r1_por_ch %>% 
+    regtab_fun(por_var = "por_score_std2", por_name = "Porosity Scale") %>% 
+    mutate(Country = "China"),
+  r1_por_vt %>% 
+    regtab_fun(por_var = "por_score_std2", por_name = "Porosity Scale") %>% 
+    mutate(Country = "Vanuatu"))
 ```
 
 ```{r}
-regtab_fun(r2_dse) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r2_dse)), color = "black")
+r1_por_bycountry %>%
+  filter(Parameter == "Porosity Scale")
 ```
 
-
-### Spiritual Events
+### Porosity Vignettes
 
 ```{r}
-r2_spev <- lm(spev_score_std ~ abs_score_std * country, d4)
-summary(r2_spev)
+r1_pv_us <- lmer(spirit_score_std2 ~ pv_score_std2 * spirit_scale +
+                   (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "US")) 
+r1_pv_gh <- lmer(spirit_score_std2 ~ pv_score_std2 * spirit_scale +
+                   (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Ghana")) 
+r1_pv_th <- lmer(spirit_score_std2 ~ pv_score_std2 * spirit_scale +
+                   (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Thailand")) 
+r1_pv_ch <- lmer(spirit_score_std2 ~ pv_score_std2 * spirit_scale +
+                   (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "China")) 
+r1_pv_vt <- lmer(spirit_score_std2 ~ pv_score_std2 * spirit_scale +
+                   (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Vanuatu")) 
 ```
 
 ```{r}
-rsquared(r2_spev)
+r1_pv_bycountry <- bind_rows(
+  r1_pv_us %>% 
+    regtab_fun(por_var = "pv_score_std2", por_name = "Porosity Vignettes") %>% 
+    mutate(Country = "US"),
+  r1_pv_gh %>% 
+    regtab_fun(por_var = "pv_score_std2", por_name = "Porosity Vignettes") %>% 
+    mutate(Country = "Ghana"),
+  r1_pv_th %>% 
+    regtab_fun(por_var = "pv_score_std2", por_name = "Porosity Vignettes") %>% 
+    mutate(Country = "Thailand"),
+  r1_pv_ch %>% 
+    regtab_fun(por_var = "pv_score_std2", por_name = "Porosity Vignettes") %>% 
+    mutate(Country = "China"),
+  r1_pv_vt %>% 
+    regtab_fun(por_var = "pv_score_std2", por_name = "Porosity Vignettes") %>% 
+    mutate(Country = "Vanuatu"))
 ```
 
 ```{r}
-regtab_fun(r2_spev) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r2_spev)), color = "black")
+r1_pv_bycountry %>%
+  filter(Parameter == "Porosity Vignettes")
+```
+
+### Absorption
+
+```{r}
+r1_abs_us <- lmer(spirit_score_std2 ~ abs_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "US")) 
+r1_abs_gh <- lmer(spirit_score_std2 ~ abs_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Ghana")) 
+r1_abs_th <- lmer(spirit_score_std2 ~ abs_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Thailand")) 
+r1_abs_ch <- lmer(spirit_score_std2 ~ abs_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "China")) 
+r1_abs_vt <- lmer(spirit_score_std2 ~ abs_score_std2 * spirit_scale +
+                    (1 | p7_subj), d4_long_bycountry %>% filter(p7_ctry == "Vanuatu")) 
+```
+
+```{r}
+r1_abs_bycountry <- bind_rows(
+  r1_abs_us %>% 
+    regtab_fun(abs_var = "abs_score_std2") %>% 
+    mutate(Country = "US"),
+  r1_abs_gh %>% 
+    regtab_fun(abs_var = "abs_score_std2") %>% 
+    mutate(Country = "Ghana"),
+  r1_abs_th %>% 
+    regtab_fun(abs_var = "abs_score_std2") %>% 
+    mutate(Country = "Thailand"),
+  r1_abs_ch %>% 
+    regtab_fun(abs_var = "abs_score_std2") %>% 
+    mutate(Country = "China"),
+  r1_abs_vt %>% 
+    regtab_fun(abs_var = "abs_score_std2") %>% 
+    mutate(Country = "Vanuatu"))
+```
+
+```{r}
+r1_abs_bycountry %>%
+  filter(Parameter == "Absorption")
+```
+
+```{r}
+bind_rows(r1_por_bycountry %>% filter(Parameter == "Porosity Scale"),
+          r1_pv_bycountry %>% filter(Parameter == "Porosity Vignettes"),
+          r1_abs_bycountry %>% filter(Parameter == "Absorption")) %>%
+  filter(` ` != "") %>%
+  # filter(Country != "Vanuatu") %>%
+  summarise(min_beta = min(β),
+            max_p = max(p))
+```
+
+```{r}
+bind_rows(r1_por_bycountry %>% filter(Parameter == "Porosity Scale"),
+          r1_pv_bycountry %>% filter(Parameter == "Porosity Vignettes"),
+          r1_abs_bycountry %>% filter(Parameter == "Absorption")) %>%
+  filter(` ` == "")
+```
+
+```{r}
+d4_long_bycountry %>% distinct(p7_ctry, p7_subj) %>% count(p7_ctry)
 ```
 
 
+# Predicting other extraordinary experiences
+
+## Primary analyses
+
+```{r}
+d4_long_other <- d4 %>%
+  select(p7_ctry, p7_subj, 
+         por_score_std, pv_score_std, abs_score_std, hall_score_std, para_score_std) %>%
+  gather(other_scale, other_score_std, 
+         c(hall_score_std, para_score_std)) %>%
+  mutate(other_scale = factor(other_scale, 
+                              levels = c("hall_score_std", "para_score_std")))
+
+contrasts(d4_long_other$p7_ctry) <- contrasts_country; contrasts(d4_long$p7_ctry)
+contrasts(d4_long_other$other_scale) <- cbind("_para" = c(-1, 1)); contrasts(d4_long_other$other_scale)
+```
+
+### Porosity Scale
+
+```{r}
+r2_por <- lmer(other_score_std ~ por_score_std * other_scale +
+                 (1 | p7_ctry/p7_subj), d4_long_other) 
+regtab_fun(r2_por, 
+           por_name = "Porosity Scale", scale_var = "other_scale_para",
+           scale_name = "Other Experience scale (Paranormal)") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r2_por, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+### Porosity Vignettes
+
+```{r}
+r2_pv <- lmer(other_score_std ~ pv_score_std * other_scale +
+                (1 | p7_ctry/p7_subj), d4_long_other) 
+regtab_fun(r2_pv, por_var = "pv_score_std", por_name = "Porosity Vignettes",
+           scale_var = "other_scale_para",
+           scale_name = "Other Experience scale (Paranormal") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r2_pv, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+### Absorption
+
+```{r}
+r2_abs <- lmer(other_score_std ~ abs_score_std * other_scale +
+                 (1 | p7_ctry/p7_subj), d4_long_other) 
+regtab_fun(r2_abs, scale_var = "other_scale_para", scale_name = "Other Experience scale (Para.)") %>% regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r2_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+
+# Comparing to control measures
+
+XX BOOKMARK
+
+
+# Porosity and absorption in a single model
+
+XX BOOKMARK
+
+
+# Cultural invitation vs. individual difference
+
+XX BOOKMARK
