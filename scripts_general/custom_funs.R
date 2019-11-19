@@ -1,22 +1,5 @@
 # function for writing regression table (fixed effects)
 
-# por_var = "por_score_std"
-# por_name = "Porosity"
-# abs_var = "abs_score_std"
-# abs_name = "Absorption"
-# country_var1 = "country_gh"
-# country_name1 = "Country (Gh.)"
-# country_var2 = "country_th"
-# country_name2 = "Country (Th.)"
-# country_var3 = "country_ch"
-# country_name3 = "Country (Ch.)"
-# country_var4 = "country_vt"
-# country_name4 = "Country (Vt.)"
-# religion_var = "religion"
-# religion_name = "Religion (Ch.)"
-# site_var = "site"
-# site_name = "Site (rural)"
-
 regtab_fun <- function(reg,
                        por_var = "por_score_std",
                        por_name = "Porosity",
@@ -30,17 +13,19 @@ regtab_fun <- function(reg,
                        country_name3 = "Country (Ch.)",
                        country_var4 = "country_vt",
                        country_name4 = "Country (Vt.)",
-                       religion_var = "religion",
+                       religion_var = "religion_char",
                        religion_name = "Religion (Ch.)",
-                       site_var = "site",
-                       site_name = "Site (rural)"){
+                       site_var = "site_rural",
+                       site_name = "Site (rural)",
+                       scale_var = "spirit_scale_spev",
+                       scale_name = "Scale (Sp. Ev.)"){
   
   var_key <- c(por_name, abs_name, 
                country_name1, country_name2, country_name3, country_name4, 
-               religion_name, site_name)
+               religion_name, site_name, scale_name)
   names(var_key) <- c(por_var, abs_var,
                       country_var1, country_var2, country_var3, country_var4,
-                      religion_var, site_var)
+                      religion_var, site_var, scale_var)
   
   reg_class <- class(reg)
 
@@ -86,19 +71,6 @@ regtab_fun <- function(reg,
   return(regtab)
 }
 
-# por_var = "por_score_std"
-# por_name = "Porosity"
-# abs_var = "abs_score_std"
-# abs_name = "Absorption"
-# subj_var = "subject_id"
-# subj_name = "Individual"
-# country_var = "country"
-# country_name = "Country"
-# religion_var = "religion"
-# religion_name = "Religion"
-# site_var = "site"
-# site_name = "Site"
-
 # function for writing regression table (random effects, residual variance)
 regtab_ran_fun <- function(reg,
                            por_var = "por_score_std",
@@ -112,7 +84,9 @@ regtab_ran_fun <- function(reg,
                            site_var = "site",
                            site_name = "Site",
                            subj_var = "subject_id",
-                           subj_name = "Individual"){
+                           subj_name = "Individual",
+                           scale_var = "spirit_scale",
+                           scale_name = "Scale (Sp. Ev.)"){
   
   var_key <- c(por_name, abs_name, 
                country_name, religion_name, site_name, subj_name)
@@ -131,7 +105,7 @@ regtab_ran_fun <- function(reg,
                     regtab[nrow(regtab),"grp"]) %>% unique()
     
     levels_var1 <- c("(Intercept)", por_var, abs_var,
-                     country_var, site_var, religion_var)
+                     country_var, site_var, religion_var, scale_var)
     
     regtab <- regtab %>%
       mutate(grp = factor(grp, levels = levels_grp),
