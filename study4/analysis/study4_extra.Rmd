@@ -218,76 +218,6 @@ regtab_fun(r1_spev) %>%
 #   row_spec(1:nrow(regtab_ran_fun(r1_spev)), color = "black")
 ```
 
-## Bayesian regression
-
-### Daily Spiritual Experiences
-
-```{r}
-# r1_dse_bayes <- brm(dse_score_std ~ abs_score_std +
-#                       (1 + abs_score_std || p7_ctry), d4,
-#                     control = list(adapt_delta = 0.99),
-#                     seed = 1234, cores = 4, chains = 4)
-# saveRDS(r1_dse_bayes, "./models/r1_dse_bayes.RDS")
-
-r1_dse_bayes <- readRDS("./models/r1_dse_bayes.RDS")
-
-summary(r1_dse_bayes)
-```
-
-```{r}
-bayes_R2(r1_dse_bayes)
-```
-
-```{r}
-regtab_fun(r1_dse_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_dse_bayes)), color = "black")
-```
-
-```{r}
-# XX NEED TO OVERWRITE "p7_ctry" FOR INDIVIDUAL SUBJECTS
-regtab_ran_fun(r1_dse_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r1_dse_bayes)), color = "black")
-```
-
-### Spiritual Events
-
-```{r}
-# r1_spev_bayes <- brm(spev_score_std ~ abs_score_std +
-#                       (1 + abs_score_std || p7_ctry), d4,
-#                     control = list(adapt_delta = 0.99),
-#                     seed = 1234, cores = 4, chains = 4)
-# saveRDS(r1_spev_bayes, "./models/r1_spev_bayes.RDS")
-
-r1_spev_bayes <- readRDS("./models/r1_spev_bayes.RDS")
-
-summary(r1_spev_bayes)
-```
-
-```{r}
-bayes_R2(r1_spev_bayes)
-```
-
-```{r}
-regtab_fun(r1_spev_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_spev_bayes)), color = "black")
-```
-
-```{r}
-# XX NEED TO OVERWRITE "p7_ctry" FOR INDIVIDUAL SUBJECTS
-regtab_ran_fun(r1_spev_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(r1_spev_bayes)), color = "black")
-```
-
 ## p7_ctry as fixed effect
 
 ### Daily Spiritual Experiences
@@ -328,5 +258,356 @@ regtab_fun(r2_spev) %>%
   row_spec(2, bold = T) %>%
   row_spec(1:nrow(regtab_fun(r2_spev)), color = "black")
 ```
+
+
+
+# Porosity and absorption differentially predicting individual extraordinary experiences
+
+```{r}
+d4_different <- d4 %>%
+  select(p7_ctry, p7_subj, por_score_std, pv_score_std, abs_score_std) %>%
+  full_join(d4_byquestion %>% 
+              select(-scale) %>%
+              # standardize responses by question (collapsing across countries)
+              group_by(question) %>%
+              mutate(response = scale(response)) %>%
+              ungroup() %>%
+              spread(question, response) %>%
+              select(p7_subj, s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para))
+```
+
+```{r}
+d4_different_cor <- d4_different %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+```
+
+```{r}
+d4_different_cor2 <- d4_different_cor %>%
+  filter(grepl("score", var1),
+         !grepl("score", var2)) %>%
+  mutate(var1 = factor(
+    var1, 
+    levels = c("por_score_std", "pv_score_std", "abs_score_std"),
+    labels = c("Porosity Scale", "Porosity Vignettes", "Absorption"))) %>%
+  left_join(d4_byquestion %>% 
+              distinct(scale, question), 
+            by = c("var2" = "question")) %>%
+  distinct() %>%
+  mutate(scale = factor(
+    scale,
+    levels = c("dse_score", "spev_score", "hall_score", "para_score"),
+    labels = c("Daily Spiritual Experiences\n(Underwood & Teresi, 2002)", 
+               "Spiritual Events\n(novel measure)",
+               "Hallucinations\n(Morrison et al., 2000)", 
+               "Paranormal\n(Thalborne & Delin, 1993)")),
+    var2_lab = factor(var2,
+                      levels = c(s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para),
+                      labels = c(paste("Item", 1:length(s4_var_dse)),
+                                 paste("Item", 1:length(s4_var_spev)),
+                                 paste("Item", 1:length(s4_var_hall)),
+                                 paste("Item", 1:length(s4_var_para))))) %>%
+  rename(predictor = var1, experience = var2, experience_lab = var2_lab)
+```
+
+```{r}
+d4_different_cor_top4 <- d4_different_cor2 %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+d4_different_cor_top4 %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_spev <- d4_different_cor2 %>%
+  filter(grepl("Spiritual Events", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_spev %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_dse <- d4_different_cor2 %>%
+  filter(grepl("Daily Spiritual Experiences", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_dse %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_hall <- d4_different_cor2 %>%
+  filter(grepl("Hallucinations", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_hall %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_para <- d4_different_cor2 %>%
+  filter(grepl("Paranormal", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_para %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+```
+
+```{r, fig.width = 2.5, fig.asp = 2.5}
+d4_different_cor2 %>%
+  left_join(d4_different_cor_top4 %>% mutate(top4 = "bold")) %>%
+  mutate(top4 = case_when(is.na(top4) ~ "plain", TRUE ~ top4)) %>%
+  ggplot(aes(x = predictor, y = reorder(experience_lab, desc(experience_lab)), 
+             fill = cor, label = format(round(cor, 2), nsmall = 2))) +
+  facet_grid(scale ~ ., scales = "free", space = "free") +
+  geom_tile(aes(size = top4), 
+            color = "black", show.legend = T) +
+  geom_text(aes(fontface = top4), 
+            size = 3) +
+  scale_fill_distiller(palette = "RdYlBu", limits = c(-1, 1),
+                       guide = guide_colorbar(barwidth = 10, barheight = 0.5)) +
+  scale_size_manual(values = c(0.5, 0.05)) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(x = "Predictor", y = "Experience Item", fill = "Pearson's r") +
+  guides(size = "none")
+```
+
+## By country, version 1 (standardized within country, correlate across)
+
+```{r}
+d4_different_bycountry <- d4 %>%
+  select(p7_ctry, p7_subj, por_score_std2, pv_score_std2, abs_score_std2) %>%
+  full_join(d4_byquestion %>% 
+              select(-scale) %>%
+              group_by(p7_ctry, question) %>%
+              # standardize responses by country and question
+              mutate(response = scale(response)) %>%
+              spread(question, response) %>%
+              select(p7_subj, s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para))
+```
+
+```{r}
+d4_different_bycountry_cor <- d4_different_bycountry %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+```
+
+```{r}
+d4_different_bycountry_cor2 <- d4_different_bycountry_cor %>%
+  filter(grepl("score", var1),
+         !grepl("score", var2)) %>%
+  mutate(var1 = factor(
+    var1, 
+    levels = c("por_score_std2", "pv_score_std2", "abs_score_std2"),
+    labels = c("Porosity Scale", "Porosity Vignettes", "Absorption"))) %>%
+  left_join(d4_byquestion %>% 
+              distinct(scale, question), 
+            by = c("var2" = "question")) %>%
+  distinct() %>%
+  mutate(scale = factor(
+    scale,
+    levels = c("dse_score", "spev_score", "hall_score", "para_score"),
+    labels = c("Daily Spiritual Experiences\n(Underwood & Teresi, 2002)", 
+               "Spiritual Events\n(novel measure)",
+               "Hallucinations\n(Morrison et al., 2000)", 
+               "Paranormal\n(Thalborne & Delin, 1993)")),
+    var2_lab = factor(var2,
+                      levels = c(s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para),
+                      labels = c(paste("Item", 1:length(s4_var_dse)),
+                                 paste("Item", 1:length(s4_var_spev)),
+                                 paste("Item", 1:length(s4_var_hall)),
+                                 paste("Item", 1:length(s4_var_para))))) %>%
+  rename(predictor = var1, experience = var2, experience_lab = var2_lab)
+```
+
+```{r}
+d4_different_bycountry_cor_top4 <- d4_different_bycountry_cor2 %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+
+d4_different_bycountry_cor_top4_spev <- d4_different_bycountry_cor2 %>%
+  filter(grepl("Spiritual Events", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+
+d4_different_bycountry_cor_top4_dse <- d4_different_bycountry_cor2 %>%
+  filter(grepl("Daily Spiritual Experiences", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+```
+
+```{r, fig.width = 2.5, fig.asp = 2.5}
+d4_different_bycountry_cor2 %>%
+  left_join(d4_different_bycountry_cor_top4 %>% mutate(top4 = "bold")) %>%
+  mutate(top4 = case_when(is.na(top4) ~ "plain", TRUE ~ top4)) %>%
+  ggplot(aes(x = predictor, y = reorder(experience_lab, desc(experience_lab)), 
+             fill = cor, label = format(round(cor, 2), nsmall = 2))) +
+  facet_grid(scale ~ ., scales = "free", space = "free") +
+  geom_tile(aes(size = top4), 
+            color = "black", show.legend = T) +
+  geom_text(aes(fontface = top4), 
+            size = 3) +
+  scale_fill_distiller(palette = "RdYlBu", limits = c(-1, 1),
+                       guide = guide_colorbar(barwidth = 10, barheight = 0.5)) +
+  scale_size_manual(values = c(0.5, 0.05)) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(x = "Predictor", y = "Experience Item", fill = "Pearson's r") +
+  guides(size = "none")
+```
+
+## By country, version 2 (standardized within country, correlate within)
+
+```{r}
+d4_different_bycountry2 <- d4 %>%
+  select(p7_ctry, p7_subj, por_score_std2, pv_score_std2, abs_score_std2) %>%
+  full_join(d4_byquestion %>% 
+              select(-scale) %>%
+              group_by(p7_ctry, question) %>%
+              # standardize responses by country and question
+              mutate(response = scale(response)) %>%
+              ungroup() %>%
+              spread(question, response) %>%
+              select(p7_subj, s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para))
+```
+
+```{r}
+d4_different_bycountry2_cor_us <- d4_different_bycountry2 %>%
+  filter(p7_ctry == "US") %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+
+d4_different_bycountry2_cor_gh <- d4_different_bycountry2 %>%
+  filter(p7_ctry == "Ghana") %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+
+d4_different_bycountry2_cor_th <- d4_different_bycountry2 %>%
+  filter(p7_ctry == "Thailand") %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+
+d4_different_bycountry2_cor_ch <- d4_different_bycountry2 %>%
+  filter(p7_ctry == "China") %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+
+d4_different_bycountry2_cor_vt <- d4_different_bycountry2 %>%
+  filter(p7_ctry == "Vanuatu") %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+```
+
+```{r}
+d4_different_bycountry2_cor <- bind_rows(
+  d4_different_bycountry2_cor_us %>% mutate(country = "US"),
+  d4_different_bycountry2_cor_gh %>% mutate(country = "Ghana"),
+  d4_different_bycountry2_cor_th %>% mutate(country = "Thailand"),
+  d4_different_bycountry2_cor_ch %>% mutate(country = "China"),
+  d4_different_bycountry2_cor_vt %>% mutate(country = "Vanuatu"))
+```
+
+```{r}
+d4_different_bycountry2_cor2 <- d4_different_bycountry2_cor %>%
+  filter(grepl("score", var1),
+         !grepl("score", var2)) %>%
+  mutate(country = factor(country, levels = levels_country)) %>%
+  mutate(var1 = factor(
+    var1, 
+    levels = c("por_score_std2", "pv_score_std2", "abs_score_std2"),
+    labels = c("Porosity Scale", "Porosity Vignettes", "Absorption"))) %>%
+  left_join(d4_byquestion %>% 
+              distinct(scale, question), 
+            by = c("var2" = "question")) %>%
+  distinct() %>%
+  mutate(scale = factor(
+    scale,
+    levels = c("dse_score", "spev_score", "hall_score", "para_score"),
+    labels = c("Daily Spiritual Experiences\n(Underwood & Teresi, 2002)", 
+               "Spiritual Events\n(novel measure)",
+               "Hallucinations\n(Morrison et al., 2000)", 
+               "Paranormal\n(Thalborne & Delin, 1993)")),
+    var2_lab = factor(var2,
+                      levels = c(s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para),
+                      labels = c(paste("Item", 1:length(s4_var_dse)),
+                                 paste("Item", 1:length(s4_var_spev)),
+                                 paste("Item", 1:length(s4_var_hall)),
+                                 paste("Item", 1:length(s4_var_para))))) %>%
+  rename(predictor = var1, experience = var2, experience_lab = var2_lab)
+```
+
+```{r}
+d4_different_bycountry2_cor_top4 <- d4_different_bycountry2_cor2 %>%
+  group_by(predictor, country) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+
+d4_different_bycountry2_cor_top4_spev <- d4_different_bycountry2_cor2 %>%
+  filter(grepl("Spiritual Events", scale)) %>%
+  group_by(predictor, country) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+
+d4_different_bycountry2_cor_top4_dse <- d4_different_bycountry2_cor2 %>%
+  filter(grepl("Daily Spiritual Experiences", scale)) %>%
+  group_by(predictor, country) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+```
+
+```{r, fig.width = 5, fig.asp = 1.25}
+d4_different_bycountry2_cor2 %>%
+  left_join(d4_different_bycountry2_cor_top4 %>% mutate(top4 = "bold")) %>%
+  mutate(top4 = case_when(is.na(top4) ~ "plain", TRUE ~ top4)) %>%
+  ggplot(aes(x = country, y = reorder(experience_lab, desc(experience_lab)), 
+             fill = cor, label = format(round(cor, 2), nsmall = 2))) +
+  facet_grid(scale ~ predictor, scales = "free", space = "free") +
+  geom_tile(aes(size = top4), 
+            color = "black", show.legend = T) +
+  geom_text(aes(fontface = top4), 
+            size = 3) +
+  scale_fill_distiller(palette = "RdYlBu", limits = c(-1, 1),
+                       guide = guide_colorbar(barwidth = 10, barheight = 0.5)) +
+  scale_size_manual(values = c(0.5, 0.05)) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(x = "Country", y = "Experience Item", fill = "Pearson's r") +
+  guides(size = "none")
+```
+
+
 
 
