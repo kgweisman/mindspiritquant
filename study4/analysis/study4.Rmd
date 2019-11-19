@@ -313,6 +313,10 @@ regtab_fun(r1_por, por_name = "Porosity Scale") %>% regtab_style_fun(row_emph = 
 regtab_ran_fun(r1_por, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
+```{r}
+rsquared(r1_por)
+```
+
 ### Porosity Vignettes
 
 ```{r}
@@ -320,6 +324,10 @@ r1_pv <- lmer(spirit_score_std ~ pv_score_std * spirit_scale +
                 (1 | p7_ctry/p7_subj), d4_long) 
 regtab_fun(r1_pv, por_name = "Porosity Vignettes") %>% regtab_style_fun(row_emph = 2)
 regtab_ran_fun(r1_pv, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+```{r}
+rsquared(r1_pv)
 ```
 
 ### Absorption
@@ -330,6 +338,146 @@ r1_abs <- lmer(spirit_score_std ~ abs_score_std * spirit_scale +
 regtab_fun(r1_abs) %>% regtab_style_fun(row_emph = 2)
 regtab_ran_fun(r1_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
+
+```{r}
+rsquared(r1_abs)
+```
+
+## Bayesian regression
+
+### Porosity Scale
+
+```{r}
+# r1_bayes_por <- brm(spirit_score_std ~ por_score_std * spirit_scale +
+#                       (1 | p7_ctry/p7_subj), d4_long,
+#                     control = list(adapt_delta = 0.99),
+#                     seed = 1234, cores = 4, chains = 4) 
+# saveRDS(r1_bayes_por, "./models/r1_bayes_por.RDS")
+
+r1_bayes_por <- readRDS("./models/r1_bayes_por.RDS")
+```
+
+```{r}
+regtab_fun(r1_bayes_por, por_name = "Porosity Scale") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r1_bayes_por, country_var = "p7_ctry", subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+bayes_R2(r1_bayes_por)
+```
+
+### Porosity Vignettes
+
+```{r}
+# r1_bayes_pv <- brm(spirit_score_std ~ pv_score_std * spirit_scale +
+#                       (1 | p7_ctry/p7_subj), d4_long,
+#                     control = list(adapt_delta = 0.99),
+#                     seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_bayes_pv, "./models/r1_bayes_pv.RDS")
+
+r1_bayes_pv <- readRDS("./models/r1_bayes_pv.RDS")
+```
+
+```{r}
+regtab_fun(r1_bayes_pv, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r1_bayes_pv, country_var = "p7_ctry", subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+bayes_R2(r1_bayes_pv)
+```
+
+### Absorption
+
+```{r}
+# r1_bayes_abs <- brm(spirit_score_std ~ abs_score_std * spirit_scale +
+#                       (1 | p7_ctry/p7_subj), d4_long,
+#                     control = list(adapt_delta = 0.99),
+#                     seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_bayes_abs, "./models/r1_bayes_abs.RDS")
+
+r1_bayes_abs <- readRDS("./models/r1_bayes_abs.RDS")
+```
+
+```{r}
+regtab_fun(r1_bayes_abs) %>% regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r1_bayes_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+bayes_R2(r1_bayes_abs)
+```
+
+
+## Country as fixed effect
+
+### Porosity Scale
+
+```{r}
+r2_por <- lmer(spirit_score_std ~ por_score_std * spirit_scale * p7_ctry +
+                 (1 | p7_subj), d4_long) 
+regtab_fun(r2_por, 
+           por_name = "Porosity Scale",
+           country_var1 = "p7_ctry_gh",
+           country_var2 = "p7_ctry_th",
+           country_var3 = "p7_ctry_ch",
+           country_var4 = "p7_ctry_vt") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r2_por, subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+```{r}
+rsquared(r2_por)
+```
+
+### Porosity Vignettes
+
+```{r}
+r2_pv <- lmer(spirit_score_std ~ pv_score_std * spirit_scale * p7_ctry +
+                (1 | p7_subj), d4_long) 
+regtab_fun(r2_pv, 
+           por_var = "pv_score_std",
+           por_name = "Porosity Vignettes",
+           country_var1 = "p7_ctry_gh",
+           country_var2 = "p7_ctry_th",
+           country_var3 = "p7_ctry_ch",
+           country_var4 = "p7_ctry_vt",
+           scale_var = "spirit_scale_spev") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r2_pv, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+```{r}
+rsquared(r2_pv)
+```
+
+### Absorption
+
+```{r}
+r2_abs <- lmer(spirit_score_std ~ abs_score_std * spirit_scale * p7_ctry +
+                 (1 | p7_subj), d4_long) 
+regtab_fun(r2_abs, 
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th",
+           country_var3 = "p7_ctry_ch",
+           country_var4 = "p7_ctry_vt",
+           scale_var = "spirit_scale_spev",
+           scale_name = "Scale (Sp. Ev.)") %>% 
+  regtab_style_fun(row_emph = 2)
+regtab_ran_fun(r2_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
+```
+
+```{r}
+rsquared(r2_abs)
+```
+
+
+
 
 ## Within each site considered alone
 
