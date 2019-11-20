@@ -612,6 +612,8 @@ r1_abs_bycountry %>%
   filter(Parameter == "Absorption")
 ```
 
+## Comparison
+
 ```{r}
 bind_rows(r1_por_bycountry %>% filter(Parameter == "Porosity Scale"),
           r1_pv_bycountry %>% filter(Parameter == "Porosity Vignettes"),
@@ -663,6 +665,10 @@ regtab_fun(r2_por,
 regtab_ran_fun(r2_por, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab_style_fun()
 ```
 
+```{r}
+rsquared(r2_por)
+```
+
 ### Porosity Vignettes
 
 ```{r}
@@ -687,12 +693,344 @@ regtab_ran_fun(r2_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% regtab
 
 # Comparing to control measures
 
-XX BOOKMARK
+## All control questions
+
+```{r}
+d4_control <- d4 %>% select(p7_ctry, p7_subj, ends_with("_std")) %>%
+  gather(predictor, score, c(por_score_std, pv_score_std, abs_score_std, 
+                             ctl_score_std, cog_score_std)) %>%
+  mutate(predictor = factor(predictor, 
+                            levels = c("por_score_std", "pv_score_std", "abs_score_std", 
+                                       "ctl_score_std", "cog_score_std")))
+
+contrasts(d4_control$predictor) <- cbind("_intVctl" = c(2, 2, 2, -3, -3),
+                                         "_porVabs" = c(1, 1, -2, 0, 0),
+                                         "_porVpv" = c(1, -1, 0, 0, 0),
+                                         "_cogVctl" = c(0, 0, 0, -1, 1))
+contrasts(d4_control$predictor)
+
+contrasts(d4_control$p7_ctry)
+```
+
+### Daily Spiritual Experiences
+
+```{r}
+r3_dse <- lm(dse_score_std ~ score * predictor * p7_ctry, d4_control)
+regtab_fun(r3_dse, 
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th", 
+           country_var3 = "p7_ctry_ch", 
+           country_var4 = "p7_ctry_vt",
+           scale_var = "score",
+           scale_name = "Predictor score") %>% 
+  regtab_style_fun(row_emph = 11) ## XX BOOKMARK
+```
+
+```{r}
+rsquared(r3_dse)
+```
+
+### Spiritual Events
+
+```{r}
+r3_spev <- lm(spev_score_std ~ score * predictor * p7_ctry, d4_control)
+regtab_fun(r3_spev, 
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th", 
+           country_var3 = "p7_ctry_ch", 
+           country_var4 = "p7_ctry_vt",
+           scale_var = "score",
+           scale_name = "Predictor score") %>% 
+  regtab_style_fun(row_emph = 11) ## XX BOOKMARK
+```
+
+```{r}
+rsquared(r3_spev)
+```
+
+## Omitting reverse-coded items from control scales
+
+```{r}
+d4_scored_norev <- d4_byquestion %>% 
+  filter(scale %in% c("cog_score", "ctl_score")) %>%
+  # omit reverse-coded items from need for cognition (9 of 18 items)
+  filter(!question %in% c("p7_hthk_not.fun", "p7_hthk_lil.challeng", 
+                          "p7_hthk_avoid.think", "p7_hthk_hrd.hav.to", 
+                          "p7_hthk_smal.daily", "p7_hthk_lil.thought", 
+                          "p7_hthk_not.exciting", "p7_hthk_mental.effrt", 
+                          "p7_hthk_job.done")) %>%
+  # omit reverse-coded items from sense of control (4 of 12 items)
+  filter(!question %in% c("p7_wob_set.mind_reverse", "p7_wob_find.ways_reverse",
+                          "p7_wob_own.hands_reverse", "p7_wob_future.on.me_reverse")) %>%
+  group_by(p7_ctry, p7_subj, scale) %>%
+  summarise(score = mean(response, na.rm = T)) %>%
+  ungroup() %>%
+  spread(scale, score) %>%
+  mutate(study = "study 4") %>%
+  group_by(study) %>%
+  mutate_at(vars(cog_score, ctl_score), funs(std = scale(.))) %>%
+  ungroup() %>%
+  group_by(study, p7_ctry) %>%
+  mutate_at(vars(cog_score, ctl_score), funs(std2 = scale(.))) %>%
+  ungroup()
+```
+
+
+```{r}
+d4_control_norev <- d4 %>% select(p7_ctry, p7_subj, ends_with("_std")) %>%
+  # replace with scores that omit reverse-coded items
+  select(-cog_score_std, -ctl_score_std) %>%
+  full_join(d4_scored_norev %>% select(p7_subj, ends_with("_std"))) %>%
+  gather(predictor, score, c(por_score_std, pv_score_std, abs_score_std, 
+                             ctl_score_std, cog_score_std)) %>%
+  mutate(predictor = factor(predictor, 
+                            levels = c("por_score_std", "pv_score_std", "abs_score_std", 
+                                       "ctl_score_std", "cog_score_std")))
+
+contrasts(d4_control_norev$predictor) <- cbind("_intVctl" = c(2, 2, 2, -3, -3),
+                                               "_porVabs" = c(1, 1, -2, 0, 0),
+                                               "_porVpv" = c(1, -1, 0, 0, 0),
+                                               "_cogVctl" = c(0, 0, 0, -1, 1))
+contrasts(d4_control_norev$predictor)
+
+contrasts(d4_control_norev$p7_ctry)
+```
+
+### Daily Spiritual Experiences
+
+```{r}
+r4_dse <- lm(dse_score_std ~ score * predictor * p7_ctry, d4_control_norev)
+regtab_fun(r4_dse, 
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th", 
+           country_var3 = "p7_ctry_ch", 
+           country_var4 = "p7_ctry_vt",
+           scale_var = "score",
+           scale_name = "Predictor score") %>% 
+  regtab_style_fun(row_emph = 11) ## XX BOOKMARK
+```
+
+```{r}
+rsquared(r4_dse)
+```
+
+### Spiritual Events
+
+```{r}
+r4_spev <- lm(spev_score_std ~ score * predictor * p7_ctry, d4_control_norev)
+regtab_fun(r4_spev, 
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th", 
+           country_var3 = "p7_ctry_ch", 
+           country_var4 = "p7_ctry_vt",
+           scale_var = "score",
+           scale_name = "Predictor score") %>% 
+  regtab_style_fun(row_emph = 11) ## XX BOOKMARK
+```
+
+```{r}
+rsquared(r4_spev)
+```
+
+
+# Porosity and absorption differentially predicting individual extraordinary experiences
+
+```{r}
+d4_different <- d4 %>%
+  select(p7_ctry, p7_subj, por_score_std, pv_score_std, abs_score_std) %>%
+  full_join(d4_byquestion %>% 
+              select(-scale) %>%
+              # standardize responses by question (collapsing across countries)
+              group_by(question) %>%
+              mutate(response = scale(response)) %>%
+              ungroup() %>%
+              spread(question, response) %>%
+              select(p7_subj, s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para))
+```
+
+```{r}
+d4_different_cor <- d4_different %>%
+  select(-p7_ctry, -p7_subj) %>%
+  # unite(p7_ctry.p7_subj, p7_ctry, p7_subj, sep = "_") %>%
+  # column_to_rownames("p7_ctry.p7_subj") %>%
+  cor(use = "pairwise.complete") %>%
+  data.frame() %>%
+  rownames_to_column("var1") %>%
+  gather(var2, cor, -var1)
+```
+
+```{r}
+d4_different_cor2 <- d4_different_cor %>%
+  filter(grepl("score", var1),
+         !grepl("score", var2)) %>%
+  mutate(var1 = factor(
+    var1, 
+    levels = c("por_score_std", "pv_score_std", "abs_score_std"),
+    labels = c("Porosity Scale", "Porosity Vignettes", "Absorption"))) %>%
+  left_join(d4_byquestion %>% 
+              distinct(scale, question), 
+            by = c("var2" = "question")) %>%
+  distinct() %>%
+  mutate(scale = factor(
+    scale,
+    levels = c("dse_score", "spev_score", "hall_score", "para_score"),
+    labels = c("Daily Spiritual Experiences\n(Underwood & Teresi, 2002)", 
+               "Spiritual Events\n(novel measure)",
+               "Hallucinations\n(Morrison et al., 2000)", 
+               "Paranormal\n(Thalborne & Delin, 1993)")),
+    var2_lab = factor(var2,
+                      levels = c(s4_var_dse, s4_var_spev, s4_var_hall, s4_var_para),
+                      labels = c(paste("Item", 1:length(s4_var_dse)),
+                                 paste("Item", 1:length(s4_var_spev)),
+                                 paste("Item", 1:length(s4_var_hall)),
+                                 paste("Item", 1:length(s4_var_para))))) %>%
+  rename(predictor = var1, experience = var2, experience_lab = var2_lab)
+```
+
+```{r}
+d4_different_cor_top4 <- d4_different_cor2 %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+d4_different_cor_top4 %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_spev <- d4_different_cor2 %>%
+  filter(grepl("Spiritual Events", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_spev %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_dse <- d4_different_cor2 %>%
+  filter(grepl("Daily Spiritual Experiences", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_dse %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_hall <- d4_different_cor2 %>%
+  filter(grepl("Hallucinations", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_hall %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+
+d4_different_cor_top4_para <- d4_different_cor2 %>%
+  filter(grepl("Paranormal", scale)) %>%
+  group_by(predictor) %>%
+  top_n(4, cor) %>%
+  arrange(predictor, desc(cor))
+# d4_different_cor_top4_para %>% kable(digits = 2) %>% kable_styling() %>% collapse_rows(1)
+```
+
+```{r, fig.width = 2.5, fig.asp = 2.5}
+d4_different_cor2 %>%
+  left_join(d4_different_cor_top4 %>% mutate(top4 = "bold")) %>%
+  mutate(top4 = case_when(is.na(top4) ~ "plain", TRUE ~ top4)) %>%
+  ggplot(aes(x = predictor, y = reorder(experience_lab, desc(experience_lab)), 
+             fill = cor, label = format(round(cor, 2), nsmall = 2))) +
+  facet_grid(scale ~ ., scales = "free", space = "free") +
+  geom_tile(aes(size = top4), 
+            color = "black", show.legend = T) +
+  geom_text(aes(fontface = top4), 
+            size = 3) +
+  scale_fill_distiller(palette = "RdYlBu", limits = c(-1, 1),
+                       guide = guide_colorbar(barwidth = 10, barheight = 0.5)) +
+  scale_size_manual(values = c(0.5, 0.05)) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(x = "Predictor", y = "Experience Item", fill = "Pearson's r") +
+  guides(size = "none")
+```
+
+```{r}
+d4_different_cor2 %>% 
+  select(scale, experience_lab, predictor, cor) %>%
+  spread(predictor, cor) %>%
+  rename(Scale = scale, Item = experience_lab) %>%
+  kable(digits = 2) %>%
+  kable_styling() # %>%
+  # collapse_rows(1)
+```
 
 
 # Porosity and absorption in a single model
 
-XX BOOKMARK
+## Parallels to primary analysis
+
+### Porosity indexed by Porosity Scale
+
+```{r}
+r5_por_abs <- lmer(spirit_score_std ~ por_score_std * abs_score_std * spirit_scale +
+                     (1 | p7_ctry/p7_subj), d4_long)
+regtab_fun(r5_por_abs, por_name = "Porosity Scale") %>% 
+  regtab_style_fun(row_emph = 2:3)
+regtab_ran_fun(r5_por_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+rsquared(r5_por_abs)
+```
+
+### Porosity indexed by Porosity Vignettes
+
+```{r}
+r5_pv_abs <- lmer(spirit_score_std ~ pv_score_std * abs_score_std * spirit_scale +
+                     (1 | p7_ctry/p7_subj), d4_long)
+regtab_fun(r5_pv_abs, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
+regtab_ran_fun(r5_pv_abs, country_var = "p7_ctry", subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+rsquared(r5_pv_abs)
+```
+
+## Country as fixed effect
+
+### Porosity indexed by Porosity Scale
+
+```{r}
+r6_por_abs <- lmer(spirit_score_std ~ por_score_std * abs_score_std * spirit_scale * 
+                     p7_ctry + (1 | p7_subj), d4_long)
+regtab_fun(r6_por_abs, 
+           por_name = "Porosity Scale",
+           country_var1 = "p7_ctry_gh",
+           country_var2 = "p7_ctry_th",
+           country_var3 = "p7_ctry_ch",
+           country_var4 = "p7_ctry_vt") %>% 
+  regtab_style_fun(row_emph = 2:3)
+regtab_ran_fun(r6_por_abs, subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+rsquared(r6_por_abs)
+```
+
+### Porosity indexed by Porosity Vignettes
+
+```{r}
+r6_pv_abs <- lmer(spirit_score_std ~ pv_score_std * abs_score_std * spirit_scale * 
+                    p7_ctry + (1 | p7_subj), d4_long)
+regtab_fun(r6_pv_abs, 
+           por_var = "pv_score_std", 
+           por_name = "Porosity Vignettes",
+           country_var1 = "p7_ctry_gh",
+           country_var2 = "p7_ctry_th",
+           country_var3 = "p7_ctry_ch",
+           country_var4 = "p7_ctry_vt") %>% 
+  regtab_style_fun(row_emph = 2:3)
+regtab_ran_fun(r6_pv_abs, subj_var = "p7_subj") %>% 
+  regtab_style_fun()
+```
+
+```{r}
+rsquared(r6_pv_abs)
+```
+
 
 
 # Cultural invitation vs. individual difference

@@ -18,14 +18,24 @@ regtab_fun <- function(reg,
                        site_var = "site_rural",
                        site_name = "Site (rural)",
                        scale_var = "spirit_scale_spev",
-                       scale_name = "Scale (Sp. Ev.)"){
+                       scale_name = "Scale (Sp. Ev.)",
+                       predictor_var1 = "predictor_intVctl",
+                       predictor_name1 = "Predictor (A)",
+                       predictor_var2 = "predictor_porVabs",
+                       predictor_name2 = "Predictor (B)",
+                       predictor_var3 = "predictor_porVpv",
+                       predictor_name3 = "Predictor (C)",
+                       predictor_var4 = "predictor_cogVctl",
+                       predictor_name4 = "Predictor (D)"){
   
   var_key <- c(por_name, abs_name, 
                country_name1, country_name2, country_name3, country_name4, 
-               religion_name, site_name, scale_name)
+               religion_name, site_name, scale_name, predictor_name1, 
+               predictor_name2, predictor_name3, predictor_name4)
   names(var_key) <- c(por_var, abs_var,
                       country_var1, country_var2, country_var3, country_var4,
-                      religion_var, site_var, scale_var)
+                      religion_var, site_var, scale_var, predictor_var1,
+                      predictor_var2, predictor_var3, predictor_var4)
   
   reg_class <- class(reg)
 
