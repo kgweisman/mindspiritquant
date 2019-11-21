@@ -99,6 +99,19 @@ contrasts(d4$p7_ctry) <- contrasts_country
 ## Attempting to fit more complex random effects structures
 
 ```{r}
+d4_long <- d4 %>%
+  select(p7_ctry, p7_subj, 
+         por_score_std, pv_score_std, abs_score_std, dse_score_std, spev_score_std) %>%
+  gather(spirit_scale, spirit_score_std, 
+         c(dse_score_std, spev_score_std)) %>%
+  mutate(spirit_scale = factor(spirit_scale, 
+                               levels = c("dse_score_std", "spev_score_std")))
+
+contrasts(d4_long$p7_ctry) <- contrasts_country; contrasts(d4_long$p7_ctry)
+contrasts(d4_long$spirit_scale) <- cbind("_spev" = c(-1, 1)); contrasts(d4_long$spirit_scale)
+```
+
+```{r}
 # more complex random effects structures: NOT REPORTED
 # note: never looking for intercepts (random or fixed) by scale, because standardized
 r1a <- lmer(spirit_score_std ~ 1 + abs_score_std +
@@ -371,6 +384,17 @@ d4_different_cor2 %>%
   guides(size = "none")
 ```
 
+```{r}
+d4_different_cor2 %>% 
+  select(scale, experience_lab, predictor, cor) %>%
+  spread(predictor, cor) %>%
+  rename(Scale = scale, Item = experience_lab) %>%
+  kable(digits = 2) %>%
+  kable_styling() # %>%
+  # collapse_rows(1)
+```
+
+
 ## By country, version 1 (standardized within country, correlate across)
 
 ```{r}
@@ -610,4 +634,45 @@ d4_different_bycountry2_cor2 %>%
 
 
 
+```{r}
+d4 %>%
+  select(p7_ctry, p7_subj, ends_with("_std")) %>%
+  gather(scale, score, ends_with("std")) %>%
+  filter(scale == "dse_score_std") %>%
+  ggplot(aes(x = p7_ctry, y = score, color = p7_ctry)) +
+  geom_jitter(height = 0, alpha = 0.2) +
+  geom_pointrange(data = . %>% 
+                    distinct(p7_ctry, p7_subj, score) %>%
+                    group_by(p7_ctry) %>% 
+                    multi_boot_standard(col = "score", na.rm = T),
+                  aes(y = mean, ymin = ci_lower, ymax = ci_lower),
+                  color = "black") +
+  scale_color_brewer(palette = "Dark2")
+
+d4 %>%
+  select(p7_ctry, p7_subj, ends_with("_std")) %>%
+  gather(scale, score, ends_with("std")) %>%
+  filter(scale == "dse_score_std") %>% 
+  distinct(p7_ctry, p7_subj, score) %>% 
+  group_by(p7_ctry) %>% 
+  multi_boot_standard(col = "score", na.rm = T) %>%
+  ungroup() %>%
+  ggplot(aes(x = p7_ctry, y = mean, ymin = ci_lower, ymax = ci_upper)) +
+  geom_pointrange() +
+  ylim(-2, 2)
+
+d4 %>%
+  select(p7_ctry, p7_subj, ends_with("_std")) %>%
+  gather(scale, score, ends_with("std")) %>%
+  filter(scale == "dse_score_std") %>% 
+  distinct(p7_ctry, p7_subj, score) %>% 
+  group_by(p7_ctry) %>% 
+  summarise(mean = mean(score, na.rm = T),
+            sd = sd(score, na.rm = T),
+            lower = mean - sd,
+            upper = mean + sd) %>%
+  ggplot(aes(x = p7_ctry, y = mean, ymin = lower, ymax = upper)) +
+  geom_pointrange() +
+  ylim(-2, 2)
+```
 
