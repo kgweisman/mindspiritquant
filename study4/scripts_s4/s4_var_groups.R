@@ -127,6 +127,9 @@ s4_var_ctl <- c("p7_wob_set.mind_reverse", "p7_wob_find.ways_reverse",
                 "p7_wob_beynd.control", "p7_wob_interfere", "p7_wob_little.contrl", 
                 "p7_wob_cant.solve", "p7_wob_pushed.around")
 
+s4_var_ctl_rev <- c("p7_wob_set.mind_reverse", "p7_wob_find.ways_reverse",
+                    "p7_wob_own.hands_reverse", "p7_wob_future.on.me_reverse")
+
 
 # need for cognition
 
@@ -138,4 +141,8 @@ s4_var_cog <- c("p7_hthk_complex", "p7_hthk_responsblt", "p7_hthk_not.fun",
                 "p7_hthk_way.to.top", "p7_hthk_new.soltions", "p7_hthk_not.exciting", 
                 "p7_hthk_puzzles", "p7_hthk_abstract", "p7_hthk_intel.task", 
                 "p7_hthk_mental.effrt", "p7_hthk_job.done", "p7_hthk_not.personal")
+
+s4_var_cog_rev <- c("p7_hthk_not.fun", "p7_hthk_lil.challeng", "p7_hthk_avoid.think",
+                    "p7_hthk_avoid.think", "p7_hthk_smal.daily", "p7_hthk_lil.thought",
+                    "p7_hthk_not.exciting", "p7_hthk_mental.effrt", "p7_hthk_job.done")
 

@@ -14,44 +14,8 @@ In this notebook, we conduct additional analyses for Study 2: Pen-and-paper surv
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
+source("../../scripts_general/data_load.R")
 source("../scripts_s2/s2_var_groups.R")
-```
-
-```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d2 <- read_csv("../data/packets123/packets123_data_bysubscale_wide.csv") %>%
-  filter(packet == 1) %>%
-  rename(country = ctry,
-         abs_score = exwl,
-         dse_score = dse_01to14,
-         spev_score = spev) %>%
-  mutate(study = "study 2") %>%
-  group_by(study) %>%
-  mutate(abs_score_std = scale(abs_score),
-         dse_score_std = scale(dse_score),
-         spev_score_std = scale(spev_score)) %>%
-  ungroup() %>%
-  group_by(country) %>%
-  mutate(abs_score_std2 = scale(abs_score),
-         dse_score_std2 = scale(dse_score),
-         spev_score_std2 = scale(spev_score)) %>%
-  ungroup() %>%
-  mutate(country = factor(country, levels = tolower(levels_country),
-                          labels = levels_country))
-
-d2_byquestion <- read_csv("../data/packets123/packets123_data_byquestion_wide.csv") %>%
-  filter(packet == 1) %>%
-  rename(country = ctry) %>%
-  mutate(country = factor(country, levels = tolower(levels_country),
-                          labels = levels_country))
-```
-
-```{r}
-contrasts(d2_byquestion$country) <- contrasts_country
-contrasts(d2$country) <- contrasts_country
 ```
 
 ```{r}

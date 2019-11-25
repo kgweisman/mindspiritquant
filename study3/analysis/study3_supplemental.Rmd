@@ -15,113 +15,7 @@ source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
 source("../scripts_s3/s3_var_groups.R")
-```
-
-```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d3a <- read_csv("../data/d_demo.csv") %>% 
-  select(-X1) %>%
-  # correct duplicate entry by hand
-  filter(!(epi_subj == "50807" & is.na(epi_charc))) %>%
-  distinct() %>%
-  full_join(read_csv("../data/d_por_scored.csv") %>% 
-              select(-X1) %>%
-              rename(por_score = score)) %>%
-  full_join(read_csv("../data/d_spex_base_q2to23_scored_propall.csv") %>% 
-              select(-X1) %>%
-              rename(spirit_score = score)) %>%
-  mutate(study = "study 3") %>%
-  group_by(study) %>%
-  mutate_at(vars(por_score, spirit_score), funs(std = scale(.))) %>%
-  ungroup() %>%
-  group_by(epi_ctry) %>%
-  mutate_at(vars(por_score, spirit_score), funs(std2 = scale(.))) %>%
-  ungroup() %>%
-  mutate(epi_ctry = factor(epi_ctry, levels = levels_country),
-         epi_sample = factor(epi_charc, 
-                             levels = c(0, 1), 
-                             labels = c("general population", "charismatic")))
-```
-
-```{r}
-d3_byquestion <- full_join(read_csv("../data/d_por.csv") %>% 
-                             select(-X1),
-                           read_csv("../data/d_spex_base_q2to23.csv") %>% 
-                             select(-X1)) %>%
-  mutate(study = "study 3") %>%
-  filter(question %in% c(s3_var_por, s3_var_spex, s3_var_being, s3_var_other)) %>%
-  select(epi_ctry, epi_subj, question, response) %>%
-  distinct() %>%
-  spread(question, response) %>%
-  full_join(d3a %>% distinct(epi_ctry, epi_sample, epi_subj))
-
-d3 <- bind_rows(d3_byquestion %>%
-                  filter(epi_ctry == "US") %>%
-                  select(epi_subj, s3_var_spex, s3_var_being_us) %>%
-                  gather(question, response, -epi_subj) %>%
-                  mutate(scale = "spirit_score"),
-                d3_byquestion %>%
-                  filter(epi_ctry == "Ghana") %>%
-                  select(epi_subj, s3_var_spex, s3_var_being_gh) %>%
-                  gather(question, response, -epi_subj) %>%
-                  mutate(scale = "spirit_score"),
-                d3_byquestion %>%
-                  filter(epi_ctry == "Thailand") %>%
-                  select(epi_subj, s3_var_spex, s3_var_being_th) %>%
-                  gather(question, response, -epi_subj) %>%
-                  mutate(scale = "spirit_score"),
-                d3_byquestion %>%
-                  filter(epi_ctry == "China") %>%
-                  select(epi_subj, s3_var_spex, s3_var_being_ch) %>%
-                  gather(question, response, -epi_subj) %>%
-                  mutate(scale = "spirit_score"),
-                d3_byquestion %>%
-                  filter(epi_ctry == "Vanuatu") %>%
-                  select(epi_subj, s3_var_spex, s3_var_being_vt) %>%
-                  gather(question, response, -epi_subj) %>%
-                  mutate(scale = "spirit_score"),
-                d3_byquestion %>%
-                  select(epi_subj, s3_var_por, s3_var_other) %>%
-                  gather(question, response, -epi_subj) %>%
-                  mutate(scale = case_when(
-                    question %in% s3_var_por ~ "por_score",
-                    question %in% s3_var_other ~ "other_score"))) %>%
-  full_join(d3a %>% distinct(epi_ctry, epi_sample, epi_subj)) %>%
-  mutate(scale = factor(scale,
-                        levels = c("por_score", "spirit_score",
-                                   "other_score")),
-         study = "study 3") %>%
-  group_by(study, scale, epi_ctry, epi_sample, epi_subj) %>%
-  summarise(score = mean(response, na.rm = T)) %>%
-  ungroup() %>%
-  spread(scale, score) %>%
-  group_by(study) %>%
-  mutate_at(vars(ends_with("_score")), funs(std = scale(.))) %>%
-  ungroup() %>%
-  group_by(study, epi_ctry) %>%
-  mutate_at(vars(ends_with("_score")), funs(std2 = scale(.))) %>%
-  ungroup()
-```
-
-```{r}
-contrasts(d3$epi_ctry) <- contrasts_country
-contrasts(d3$epi_sample) <- cbind("_ch" = c(-1, 1))
-```
-
-```{r}
-d3_byquestion <- full_join(read_csv("../data/d_por.csv") %>% 
-                             select(-X1),
-                           read_csv("../data/d_spex_base_q2to23.csv") %>% 
-                             select(-X1)) %>%
-  mutate(study = "study 3") %>%
-  filter(question %in% c(s3_var_por, s3_var_spex, s3_var_being, s3_var_other)) %>%
-  select(epi_ctry, epi_subj, question, response) %>%
-  distinct() %>%
-  spread(question, response) %>%
-  full_join(d3 %>% distinct(epi_ctry, epi_sample, epi_subj))
+source("../../scripts_general/data_load.R")
 ```
 
 
@@ -217,7 +111,7 @@ bind_rows(d3_byquestion %>%
 
 ```{r}
 d_alpha_por <- data.frame()
-for(i in c(levels(d3$epi_ctry), "ALL")){
+for(i in c(levels(d3$epi_ctry), "ALL")) {
   res <- data.frame(epi_ctry = i, 
                     alpha = alpha_fun(d3_byquestion %>% rename(country = epi_ctry), 
                                       which_vars = s3_var_por,
@@ -229,19 +123,19 @@ for(i in c(levels(d3$epi_ctry), "ALL")){
 
 ```{r}
 d_alpha_spirit <- data.frame()
-for(i in levels(d3$epi_ctry)){
+for (i in levels(d3$epi_ctry)) {
   df <- d3_byquestion %>%
     rename(country = epi_ctry) %>%
     filter(country == i)
   
-  df <- df %>% select_if(function(x){!all(is.na(x))})
-  if(i == "Thailand"){df <- df %>% drop_na()}
+  df <- df %>% select_if (function(x) {!all(is.na(x))})
+  if (i == "Thailand") {df <- df %>% drop_na()}
   
-  if(i == "US"){var_spirit <- c(s3_var_spex, s3_var_being_us)}
-  if(i == "Ghana"){var_spirit <- c(s3_var_spex, s3_var_being_gh)}
-  if(i == "Thailand"){var_spirit <- c(s3_var_spex, s3_var_being_th)}
-  if(i == "China"){var_spirit <- c(s3_var_spex, s3_var_being_ch)}
-  if(i == "Vanuatu"){var_spirit <- c(s3_var_spex, s3_var_being_vt)}
+  if (i == "US") {var_spirit <- c(s3_var_spex, s3_var_being_us)}
+  if (i == "Ghana") {var_spirit <- c(s3_var_spex, s3_var_being_gh)}
+  if (i == "Thailand") {var_spirit <- c(s3_var_spex, s3_var_being_th)}
+  if (i == "China") {var_spirit <- c(s3_var_spex, s3_var_being_ch)}
+  if (i == "Vanuatu") {var_spirit <- c(s3_var_spex, s3_var_being_vt)}
   
   res <- data.frame(epi_ctry = i, 
                     alpha = alpha_fun(df, 
@@ -254,7 +148,7 @@ for(i in levels(d3$epi_ctry)){
 
 ```{r}
 d_alpha_other <- data.frame()
-for(i in c(levels(d3$epi_ctry), "ALL")){
+for(i in c(levels(d3$epi_ctry), "ALL")) {
   res <- data.frame(epi_ctry = i, 
                     alpha = alpha_fun(d3_byquestion %>% rename(country = epi_ctry), 
                                       which_vars = s3_var_other,

@@ -14,24 +14,14 @@ In this notebook, we analyze Study 1: In-depth interviews with people of faith.
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
+source("../../scripts_general/data_load.R")
 ```
 
 ```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d1 <- read_csv("../data/study1.csv") %>%
-  mutate(country = factor(country, levels = levels_country),
-         site = factor(site, levels = levels_site),
-         religion = factor(religion, levels = levels_religion),
-         researcher = factor(researcher, levels = levels_researcher))
-```
-
-```{r}
-contrasts(d1$country) <- contrasts_country; contrasts(d1$country)
-contrasts(d1$site) <- contrasts_site; contrasts(d1$site)
-contrasts(d1$religion) <- contrasts_religion; contrasts(d1$religion)
+# show contrasts
+contrasts(d1$country)
+contrasts(d1$site)
+contrasts(d1$religion)
 ```
 
 

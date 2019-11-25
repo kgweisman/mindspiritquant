@@ -14,89 +14,9 @@ In this notebook, we conducted extra analyses (not reported) for Study 4: Confir
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
-```
-
-```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d4_byquestion_raw <- read_csv("../data/study4_byquestion.csv") %>%
-  select(-X1) %>%
-  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
-
 source("../scripts_s4/s4_var_groups.R")
+source("../../scripts_general/data_load.R")
 ```
-
-```{r}
-d4_byquestion <- full_join(d4_byquestion_raw %>%
-                             select(p7_ctry, p7_subj, s4_var_pv) %>%
-                             gather(question, response, s4_var_pv) %>%
-                             mutate(scale = "pv_score"),
-                           d4_byquestion_raw %>%
-                             select(p7_ctry, p7_subj, s4_var_por) %>%
-                             gather(question, response, s4_var_por) %>%
-                             mutate(scale = "por_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_abs) %>%
-              gather(question, response, s4_var_abs) %>%
-              mutate(scale = "abs_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_dse) %>%
-              gather(question, response, s4_var_dse) %>%
-              mutate(scale = "dse_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_spev) %>%
-              gather(question, response, s4_var_spev) %>%
-              mutate(scale = "spev_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_hall) %>%
-              gather(question, response, s4_var_hall) %>%
-              mutate(scale = "hall_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_para) %>%
-              gather(question, response, s4_var_para) %>%
-              mutate(scale = "para_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_cog) %>%
-              gather(question, response, s4_var_cog) %>%
-              mutate(scale = "cog_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_ctl) %>%
-              gather(question, response, s4_var_ctl) %>%
-              mutate(scale = "ctl_score")) %>%
-  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
-```
-
-```{r}
-d4_0 <- d4_byquestion %>%
-  group_by(p7_subj, scale) %>%
-  mutate(score = mean(response, na.rm = T)) %>%
-  ungroup() %>%
-  mutate(study = "study 4") %>%
-  distinct(study, p7_ctry, p7_subj, scale, score) %>%
-  spread(scale, score)
-
-d4_std <- d4_0 %>%
-  group_by(study) %>%
-  mutate_at(vars(ends_with("_score")), funs(std = scale)) %>%
-  ungroup()
-
-d4_std2 <- d4_0 %>%
-  group_by(study, p7_ctry) %>%
-  mutate_at(vars(ends_with("_score")), funs(std2 = scale)) %>%
-  ungroup()
-
-d4 <- d4_0 %>% full_join(d4_std) %>% full_join(d4_std2) %>%
-  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
-```
-
-```{r}
-contrasts(d4_byquestion$p7_ctry) <- contrasts_country
-contrasts(d4$p7_ctry) <- contrasts_country
-```
-
-## Attempting to fit more complex random effects structures
 
 ```{r}
 d4_long <- d4 %>%
@@ -110,6 +30,8 @@ d4_long <- d4 %>%
 contrasts(d4_long$p7_ctry) <- contrasts_country; contrasts(d4_long$p7_ctry)
 contrasts(d4_long$spirit_scale) <- cbind("_spev" = c(-1, 1)); contrasts(d4_long$spirit_scale)
 ```
+
+## Attempting to fit more complex random effects structures
 
 ```{r}
 # more complex random effects structures: NOT REPORTED
@@ -178,11 +100,7 @@ rsquared(r1_dse)
 ```
 
 ```{r}
-regtab_fun(r1_dse) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_dse)), color = "black")
+regtab_fun(r1_dse) %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
@@ -211,11 +129,7 @@ rsquared(r1_spev)
 ```
 
 ```{r}
-regtab_fun(r1_spev) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r1_spev)), color = "black")
+regtab_fun(r1_spev) %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
@@ -245,11 +159,12 @@ rsquared(r2_dse)
 ```
 
 ```{r}
-regtab_fun(r2_dse) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r2_dse)), color = "black")
+regtab_fun(r2_dse, 
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th", 
+           country_var3 = "p7_ctry_ch", 
+           country_var4 = "p7_ctry_vt") %>% 
+  regtab_style_fun(row_emph = 2)
 ```
 
 
@@ -265,11 +180,12 @@ rsquared(r2_spev)
 ```
 
 ```{r}
-regtab_fun(r2_spev) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(r2_spev)), color = "black")
+regtab_fun(r2_spev,
+           country_var1 = "p7_ctry_gh", 
+           country_var2 = "p7_ctry_th", 
+           country_var3 = "p7_ctry_ch", 
+           country_var4 = "p7_ctry_vt") %>%
+  regtab_style_fun(row_emph = 2)
 ```
 
 

@@ -14,29 +14,8 @@ In this notebook, we conduct additional analyses for Study 1: In-depth interview
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
+source("../../scripts_general/data_load.R")
 source("../scripts_s1/s1_var_groups.R")
-```
-
-```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d1_byquestion <- read_csv("../data/study1_byquestion.csv") %>%
-  mutate(country = factor(country, levels = levels_country),
-         site = factor(site, levels = levels_site),
-         religion = factor(religion, levels = levels_religion),
-         researcher = factor(researcher, levels = levels_researcher),
-         study = "study 1")
-```
-
-```{r}
-d1 <- read.csv("../data/study1.csv") %>%
-  mutate(country = factor(country, levels = levels_country),
-         site = factor(site, levels = levels_site),
-         religion = factor(religion, levels = levels_religion),
-         researcher = factor(researcher, levels = levels_researcher),
-         study = "study 1")
 ```
 
 
@@ -545,23 +524,12 @@ piecewiseSEM::rsquared(rr1)
 ```
 
 ```{r}
-regtab_fun(rr1) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr1)), color = "black")
+regtab_fun(rr1, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(rr1) %>%
-  mutate(Group = factor(Group,
-                        levels = c("Country", "Site, nested within Country",
-                                   "Religion, nested within Site, nested within Country", 
-                                   "Residual"))) %>%
-  arrange(Group) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr1)), color = "black")
+regtab_ran_fun(rr1) %>% regtab_style_fun()
 ```
 
 ### Original (limited scale)
@@ -578,23 +546,12 @@ piecewiseSEM::rsquared(rr1a)
 ```
 
 ```{r}
-regtab_fun(rr1a) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr1a)), color = "black")
+regtab_fun(rr1a, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(rr1a) %>%
-  mutate(Group = factor(Group,
-                        levels = c("Country", "Site, nested within Country",
-                                   "Religion, nested within Site, nested within Country", 
-                                   "Residual"))) %>%
-  arrange(Group) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr1a)), color = "black")
+regtab_ran_fun(rr1a) %>% regtab_style_fun()
 ```
 
 ### Recoded (limited scale)
@@ -612,24 +569,12 @@ piecewiseSEM::rsquared(rr1b)
 ```
 
 ```{r}
-regtab_fun(rr1b) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr1b)), color = "black")
+regtab_fun(rr1b, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
-XX BOOKMARK 
 ```{r}
-regtab_ran_fun(rr1b) %>%
-  # correct labeling by hand to account for different model
-  mutate(Group = factor(Group, levels = c("Country",
-                                          "Religion, nested within Country",
-                                          "Residual"))) %>%
-  arrange(Group) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr1b)), color = "black")
+regtab_ran_fun(rr1b) %>% regtab_style_fun()
 ```
 
 ### Comparison of models
@@ -737,23 +682,12 @@ bayes_R2(rr1_bayes)
 ```
 
 ```{r}
-regtab_fun(rr1_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr1_bayes)), color = "black")
+regtab_fun(rr1_bayes, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(rr1_bayes) %>%
-  mutate(Group = factor(Group,
-                        levels = c("Country", "Site, nested within Country",
-                                   "Religion, nested within Site, nested within Country", 
-                                   "Residual"))) %>%
-  arrange(Group) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr1_bayes)), color = "black")
+regtab_ran_fun(rr1_bayes) %>% regtab_style_fun()
 ```
 
 ### Original (limited scale)
@@ -775,18 +709,12 @@ bayes_R2(rr1a_bayes)
 ```
 
 ```{r}
-regtab_fun(rr1a_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr1a_bayes)), color = "black")
+regtab_fun(rr1a_bayes, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(rr1a_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr1a_bayes)), color = "black")
+regtab_ran_fun(rr1a_bayes) %>% regtab_style_fun()
 ```
 
 ### Recoded (limited scale)
@@ -808,18 +736,12 @@ bayes_R2(rr1b_bayes)
 ```
 
 ```{r}
-regtab_fun(rr1b_bayes) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr1b_bayes)), color = "black")
+regtab_fun(rr1b_bayes, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(rr1b_bayes) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr1b_bayes)), color = "black")
+regtab_ran_fun(rr1b_bayes) %>% regtab_style_fun()
 ```
 
 ## Comparison of models
@@ -886,11 +808,8 @@ piecewiseSEM::rsquared(rr2)
 ```
 
 ```{r}
-regtab_fun(rr2) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr2)), color = "black")
+regtab_fun(rr2, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 
@@ -909,22 +828,11 @@ piecewiseSEM::rsquared(rr3)
 ```
 
 ```{r}
-regtab_fun(rr3) %>%
-  kable(align = c(rep("r", ncol(.) - 1), "l")) %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(2:3, bold = T) %>%
-  row_spec(1:nrow(regtab_fun(rr3)), color = "black")
+regtab_fun(rr3, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-regtab_ran_fun(rr3) %>%
-  mutate(Group = factor(Group,
-                        levels = c("Country", "Site, nested within Country",
-                                   "Religion, nested within Site, nested within Country", 
-                                   "Residual"))) %>%
-  arrange(Group) %>%
-  kable(align = "r") %>%
-  kable_styling(font_size = 16) %>%
-  row_spec(1:nrow(regtab_ran_fun(rr3)), color = "black")
+regtab_ran_fun(rr3) %>% regtab_style_fun()
 ```
 

@@ -14,86 +14,14 @@ In this notebook, we analyze Study 4: Confirmatory work with undergraduates.
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
-```
-
-```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d4_byquestion_raw <- read_csv("../data/study4_byquestion.csv") %>%
-  select(-X1) %>%
-  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
-
 source("../scripts_s4/s4_var_groups.R")
+source("../../scripts_general/data_load.R")
 ```
 
 ```{r}
-d4_byquestion <- full_join(d4_byquestion_raw %>%
-                             select(p7_ctry, p7_subj, s4_var_pv) %>%
-                             gather(question, response, s4_var_pv) %>%
-                             mutate(scale = "pv_score"),
-                           d4_byquestion_raw %>%
-                             select(p7_ctry, p7_subj, s4_var_por) %>%
-                             gather(question, response, s4_var_por) %>%
-                             mutate(scale = "por_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_abs) %>%
-              gather(question, response, s4_var_abs) %>%
-              mutate(scale = "abs_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_dse) %>%
-              gather(question, response, s4_var_dse) %>%
-              mutate(scale = "dse_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_spev) %>%
-              gather(question, response, s4_var_spev) %>%
-              mutate(scale = "spev_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_hall) %>%
-              gather(question, response, s4_var_hall) %>%
-              mutate(scale = "hall_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_para) %>%
-              gather(question, response, s4_var_para) %>%
-              mutate(scale = "para_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_cog) %>%
-              gather(question, response, s4_var_cog) %>%
-              mutate(scale = "cog_score")) %>%
-  full_join(d4_byquestion_raw %>%
-              select(p7_ctry, p7_subj, s4_var_ctl) %>%
-              gather(question, response, s4_var_ctl) %>%
-              mutate(scale = "ctl_score")) %>%
-  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
-```
-
-```{r}
-d4_0 <- d4_byquestion %>%
-  group_by(p7_subj, scale) %>%
-  mutate(score = mean(response, na.rm = T)) %>%
-  ungroup() %>%
-  mutate(study = "study 4") %>%
-  distinct(study, p7_ctry, p7_subj, scale, score) %>%
-  spread(scale, score)
-
-d4_std <- d4_0 %>%
-  group_by(study) %>%
-  mutate_at(vars(ends_with("_score")), funs(std = scale)) %>%
-  ungroup()
-
-d4_std2 <- d4_0 %>%
-  group_by(study, p7_ctry) %>%
-  mutate_at(vars(ends_with("_score")), funs(std2 = scale)) %>%
-  ungroup()
-
-d4 <- d4_0 %>% full_join(d4_std) %>% full_join(d4_std2) %>%
-  mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
-```
-
-```{r}
-contrasts(d4_byquestion$p7_ctry) <- contrasts_country
-contrasts(d4$p7_ctry) <- contrasts_country
+# show contrasts
+contrasts(d4_byquestion$p7_ctry)
+contrasts(d4$p7_ctry)
 ```
 
 

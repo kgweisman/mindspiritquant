@@ -15,28 +15,7 @@ source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 source("../../scripts_general/var_recode_contrast.R")
 source("../scripts_s1/s1_var_groups.R")
-```
-
-```{r}
-theme_set(theme_bw())
-```
-
-```{r}
-d1_byquestion <- read_csv("../data/study1_byquestion.csv") %>%
-  mutate(country = factor(country, levels = levels_country),
-         site = factor(site, levels = levels_site),
-         religion = factor(religion, levels = levels_religion),
-         researcher = factor(researcher, levels = levels_researcher),
-         study = "study 1")
-```
-
-```{r}
-d1 <- read.csv("../data/study1.csv") %>%
-  mutate(country = factor(country, levels = levels_country),
-         site = factor(site, levels = levels_site),
-         religion = factor(religion, levels = levels_religion),
-         researcher = factor(researcher, levels = levels_researcher),
-         study = "study 1")
+source("../../scripts_general/data_load.R")
 ```
 
 
@@ -362,8 +341,7 @@ d1_check %>%
 s1_check_icc_df <- data.frame(question = character(), icc = numeric())
 for(i in d1_check_questions){
   temp_icc <- icc_fun(d1_check, var_name = i, 
-                      res1 = "judgment", res2 = "response", 
-                      which_model = "oneway")
+                      var1 = "judgment", var2 = "response")
   temp_res <- data.frame(question = i, icc = temp_icc)
   s1_check_icc_df <- full_join(s1_check_icc_df, temp_res)
   rm(temp_res, i)

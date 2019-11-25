@@ -38,7 +38,7 @@ regtab_fun <- function(reg,
                       predictor_var2, predictor_var3, predictor_var4)
   
   reg_class <- class(reg)
-
+  
   if ("lmerModLmerTest" %in% reg_class || reg_class == "lm") {
     regtab <- summary(reg)$coefficients %>%
       data.frame() %>%
@@ -104,7 +104,7 @@ regtab_ran_fun <- function(reg,
                       country_var, religion_var, site_var, subj_var)
   
   reg_class <- class(reg)
-
+  
   if ("lmerModLmerTest" %in% reg_class) {
     regtab <- summary(reg)$varcor %>%
       data.frame() %>%
@@ -156,7 +156,7 @@ regtab_ran_fun <- function(reg,
       mutate(Group = gsub("NA, nested within ", "", Group))
     
   }
-
+  
   regtab <- regtab %>%
     mutate_at(vars(Variance, `Std. Dev.`), 
               funs(format(round(., 2), nsmall = 2))) %>%
@@ -194,4 +194,64 @@ regtab_style_fun <- function(regtab,
   
   return(regtab_styled)
 }
+
+
+# function for calculating Cronbach's alpha
+alpha_fun <- function(df, which_vars, which_country, which_keys = NULL,
+                      which_use = NULL){
+  
+  if (which_country != "ALL") {
+    df0 <- df %>% filter(country == which_country)
+  } else {
+    df0 <- df
+  }
+  
+  df0 <- df0 %>% select(!!which_vars)
+  
+  res <- psych::alpha(df0, keys = which_keys, use = "pairwise")
+  res_alpha <- res$total["raw_alpha"] %>% as.numeric()
+  
+  return(res_alpha)  
+}
+
+
+# function for scoring scales after omitting items
+score_fun <- function(df, var_omit = NA, 
+                      var_group = c("country", "subject_id")){
+  
+  if (!is.na(var_omit)) {
+    df0 <- df %>% select(-!!var_omit)
+  } else {
+    df0 <- df
+  }
+  
+  df0 <- df0 %>%
+    gather(question, response, -!!var_group) %>%
+    group_by_at(var_group) %>%
+    summarise(score = mean(response, na.rm = T)) %>%
+    ungroup()
+  
+  return(df0)
+
+}
+
+
+# function for getting ICC stat
+icc_fun <- function(df, var_name = NA, 
+                    var1 = "response", var2 = "recoded",
+                    which_model = "oneway", which_type = "consistency",
+                    which_unit = "single") {
+  
+  df0 <- df %>%
+    filter(question == var_name) %>%
+    select_at(c(var1, var2))
+  
+  res <- irr::icc(df0, model = which_model, type = which_type, unit = which_unit)
+  
+  icc <- res$value
+  
+  return(icc)
+  
+}
+
 
