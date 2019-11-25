@@ -1,0 +1,302 @@
+---
+title: "Studies 1-4: Figures"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we create figures for Studies 1-4.
+
+```{r}
+source("./scripts_general/dependencies.R")
+source("./scripts_general/custom_funs.R")
+source("./scripts_general/var_recode_contrast.R")
+source("./study1/scripts_s1/s1_var_groups.R")
+source("./study2/scripts_s2/s2_var_groups.R")
+source("./study3/scripts_s3/s3_var_groups.R")
+source("./study4/scripts_s4/s4_var_groups.R")
+```
+
+```{r}
+setwd("./study1/analysis/")
+source("../../scripts_general/data_load.R")
+```
+
+
+# Summary statistics
+
+## Spiritual Events scores
+
+### Study 1
+
+```{r}
+d1 %>%
+  ggplot(aes(x = country, y = spirit_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(spirit_score, na.rm = T),
+                              sd = sd(spirit_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Study 1: Spiritual Events score (range: 0-1)",
+       caption = "Error bars are ±1 standard deviation from the mean")
+```
+
+### Study 2
+
+```{r}
+d2 %>%
+  ggplot(aes(x = country, y = spev_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 4), breaks = seq(0, 4, 1)) +
+  labs(x = "Country", y = "Study 2: Spiritual Events score (range: 0-4)",
+       caption = "Error bars are ±1 standard deviation from the mean")
+```
+
+### Study 3
+
+```{r}
+d3 %>%
+  # correct for scaling in original dataset
+  mutate(spirit_score = spirit_score * 4) %>%
+  ggplot(aes(x = epi_ctry, y = spirit_score, color = epi_ctry, fill = epi_ctry)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(epi_ctry) %>%
+                    summarise(mean = mean(spirit_score, na.rm = T),
+                              sd = sd(spirit_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 4), breaks = seq(0, 4, 1)) +
+  labs(x = "Country", y = "Study 3: Spiritual Events score (range: 0-4)",
+       caption = "Error bars are ±1 standard deviation from the mean")
+```
+
+### Study 4
+
+```{r}
+d4 %>%
+  ggplot(aes(x = p7_ctry, y = spev_score, color = p7_ctry, fill = p7_ctry)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(p7_ctry) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 4), breaks = seq(0, 4, 1)) +
+  labs(x = "Country", y = "Study 4: Spiritual Events score (range: 0-4)",
+       caption = "Error bars are ±1 standard deviation from the mean")
+```
+
+### All studies
+
+```{r}
+d_all <- d1 %>%
+  select(study, country, site, religion, subject_id, 
+         por_score, abs_score, spirit_score) %>%
+  rename(spev_score = spirit_score,
+         pv_score = por_score) %>%
+  mutate(religion = recode_factor(religion,
+                       "indigenous" = "Indigenous Religion",
+                       "charismatic" = "Charismatic Christianity"),
+         # rescale to 0-1
+         pv_score = pv_score/3) %>%
+  full_join(d2 %>% 
+              select(study, country, subj, 
+                     abs_score, spev_score, dse_score) %>% 
+              rename(subject_id = subj) %>%
+              # rescale to 0-1
+              mutate(spev_score = spev_score/4,
+                     dse_score = dse_score/5,
+                     religion = "General Population")) %>%
+  full_join(d3 %>% 
+              select(study, epi_ctry, epi_sample, epi_subj, 
+                     por_score, spirit_score) %>%
+              rename(country = epi_ctry, 
+                     religion = epi_sample,
+                     subject_id = epi_subj,
+                     spev_score = spirit_score) %>%
+              mutate(religion = recode_factor(religion,
+                "general population" = "General Population",
+                "charismatic" = "Charismatic Christianity"))) %>%
+  full_join(d4 %>%
+              select(study, p7_ctry, p7_subj, 
+                     por_score, pv_score, abs_score, spev_score, dse_score) %>%
+              rename(country = p7_ctry,
+                     subject_id = p7_subj) %>%
+              # rescale to 0-1
+              mutate(por_score = por_score/2,
+                     pv_score = pv_score/3,
+                     spev_score = spev_score/4,
+                     dse_score = dse_score/5,
+                     religion = "General Population")) %>%
+  mutate(religion = factor(religion, 
+                           levels = c("General Population", 
+                                      "Indigenous Religion",
+                                      "Charismatic Christianity")),
+         study = gsub("study", "Study", study)) 
+```
+
+```{r, fig.width = 3, fig.asp = 0.8}
+d_all %>%
+  ggplot(aes(x = country, y = spev_score, color = country, fill = country,
+             group = study)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.25,
+                                   jitter.height = 0,
+                                   dodge.width = 0.75), 
+             alpha = 0.1) +
+  geom_pointrange(data = d_spev %>%
+                    group_by(study, country) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd, shape = study), 
+                  position = position_dodge(width = 0.75),
+                  color = "black") +
+  scale_shape_manual(values = 21:24) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  guides(color = F, fill = F, 
+         shape = guide_legend(override.aes = list(fill = "black"))) +
+  theme(legend.position = "bottom") +
+  labs(x = "Country", y = "Spiritual Events score (rescaled to 0-1)",
+       shape = "Study", 
+       caption = "Error bars are ±1 standard deviation from the mean")
+```
+
+```{r}
+d_spev_sum <- d_all %>%
+  filter(!is.na(spev_score)) %>%
+  group_by(study, country, religion) %>%
+  summarise(mean = mean(spev_score, na.rm = T),
+            sd = sd(spev_score, na.rm = T),
+            n = n()) %>%
+  ungroup()
+```
+
+```{r, fig.width = 5, fig.asp = 0.45}
+d_all %>%
+  ggplot(aes(x = country, y = spev_score, 
+             color = country, fill = country,
+             group = religion)) +
+  facet_grid(~ study, scales = "free", space = "free") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.8,
+                                    jitter.height = 0.02,
+                                    dodge.width = 0.75), 
+             alpha = 0.15) +
+  geom_pointrange(data = d_spev_sum,
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd, 
+                      shape = religion), 
+                  position = position_dodge(width = 0.75),
+                  fill = "black",
+                  color = "black") +
+  geom_text(data = d_spev_sum %>%
+              mutate(ypos = case_when(
+                grepl("charismatic", tolower(religion)) ~ mean + sd + 0.05,
+                TRUE ~ mean - sd - 0.05)),
+            aes(y = ypos, label = paste0("n=", n)), 
+            position = position_dodge(width = 0.75),
+            size = 3, color = "black") +
+  scale_shape_manual(values = 21:24) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  guides(color = F, fill = F, 
+         shape = guide_legend(override.aes = list(fill = "black"))) +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(x = "Country", y = "Spiritual Events score (rescaled to 0-1)",
+       # caption = "Error bars are ±1 standard deviation from the mean",
+       shape = "Religion")
+```
+
+## Relationships
+
+###  All studies
+
+```{r, fig.width = 4, fig.asp = 0.7}
+d_all %>%
+  gather(spirit_scale, spirit_score, c(spev_score, dse_score)) %>%
+  gather(poros_scale, poros_score, c(por_score, pv_score)) %>%
+  mutate(spirit_scale = recode_factor(spirit_scale,
+                                      "spev_score" = "Spiritual Events",
+                                      "dse_score" = "Daily Spiritual Experiences"),
+         poros_scale = recode_factor(poros_scale,
+                                     "pv_score" = "Porosity Vignettes",
+                                     "por_score" = "Porosity Scale"),
+         study_scale = paste(study, poros_scale, sep = ": ")) %>%
+  filter(!is.na(poros_score)) %>%
+  ggplot(aes(x = poros_score, y = spirit_score)) +
+  facet_grid(spirit_scale ~ study_scale) +
+  geom_point(data = . %>% distinct(study, study_scale, country, 
+                            poros_scale, poros_score,
+                            spirit_scale, spirit_score),
+             aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Score on porosity measure (rescaled to 0-1)",
+       y = "Score on spiritual experience measure (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+```{r, fig.width = 3, fig.asp = 0.9}
+d_all %>%
+  gather(spirit_scale, spirit_score, c(spev_score, dse_score)) %>%
+  mutate(spirit_scale = recode_factor(spirit_scale,
+                                      "spev_score" = "Spiritual Events",
+                                      "dse_score" = "Daily Spiritual Experiences"),
+         study_scale = paste(study, "Absorption scale", sep = ": ")) %>%
+  filter(!is.na(abs_score)) %>%
+  ggplot(aes(x = abs_score, y = spirit_score)) +
+  facet_grid(spirit_scale ~ study_scale) +
+  geom_point(data = . %>% distinct(study, study_scale, country, 
+                            abs_score,
+                            spirit_scale, spirit_score),
+             aes(color = country), alpha = 0.2) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Score on absorption measure (rescaled to 0-1)",
+       y = "Score on spiritual experience measure (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+
