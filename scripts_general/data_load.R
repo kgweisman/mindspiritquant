@@ -24,12 +24,37 @@ contrasts(d1_byquestion$religion) <- contrasts_religion
 
 
 # study 2 -----
-d2 <- read_csv("../../study2/data/packets123/packets123_data_bysubscale_wide.csv") %>%
+d2_byquestion <- read_csv("../../study2/data/packets123/packets123_data_byquestion_wide.csv") %>%
   filter(packet == 1) %>%
-  rename(country = ctry,
-         abs_score = exwl,
-         dse_score = dse_01to14,
-         spev_score = spev) %>%
+  rename(country = ctry) %>%
+  mutate(country = factor(country, levels = tolower(levels_country),
+                          labels = levels_country))
+
+contrasts(d2_byquestion$country) <- contrasts_country
+
+# d2 <- read_csv("../../study2/data/packets123/packets123_data_bysubscale_wide.csv") %>%
+#   filter(packet == 1) %>%
+#   rename(country = ctry,
+#          abs_score = exwl,
+#          dse_score = dse_01to14,
+#          spev_score = spev)
+
+d2 <- d2_byquestion %>% 
+  select(country, subj, s2_var_abs, s2_var_dse, s2_var_spev) %>%
+  gather(question, response, -c(country, subj)) %>%
+  mutate(scale = case_when(grepl("dse_", question) ~ "dse_score",
+                           grepl("spev", question) ~ "spev_score",
+                           grepl("exwl", question) ~ "abs_score")) %>%
+  # mutate(scale = paste0(gsub("_.*$", "", question), "_score")) %>%
+  group_by(country, subj, scale) %>%
+  summarise(score = mean(response, na.rm = T)) %>%
+  # summarise(score = sum(response, na.rm = T)) %>%
+  # filter(!is.na(response)) %>%
+  # summarise(score = n()) %>%
+  ungroup() %>%
+  spread(scale, score)
+
+d2 <- d2 %>%
   mutate(study = "study 2") %>%
   group_by(study) %>%
   mutate(abs_score_std = scale(abs_score),
@@ -41,19 +66,11 @@ d2 <- read_csv("../../study2/data/packets123/packets123_data_bysubscale_wide.csv
          dse_score_std2 = scale(dse_score),
          spev_score_std2 = scale(spev_score)) %>%
   ungroup() %>%
-  mutate(country = factor(country, levels = tolower(levels_country),
-                          labels = levels_country))
+  mutate(country = factor(country, levels = levels_country))
+  # mutate(country = factor(country, levels = tolower(levels_country),
+  #                         labels = levels_country))
 
 contrasts(d2$country) <- contrasts_country
-
-d2_byquestion <- read_csv("../../study2/data/packets123/packets123_data_byquestion_wide.csv") %>%
-  filter(packet == 1) %>%
-  rename(country = ctry) %>%
-  mutate(country = factor(country, levels = tolower(levels_country),
-                          labels = levels_country))
-
-contrasts(d2_byquestion$country) <- contrasts_country
-
 
 # study 3 -----
 source("../../study3/scripts_s3/s3_var_groups.R")
@@ -215,7 +232,7 @@ d4_std2 <- d4_0 %>%
 d4 <- d4_0 %>% full_join(d4_std) %>% full_join(d4_std2) %>%
   mutate(p7_ctry = factor(p7_ctry, levels = levels_country))
 
-rm(d4_byquestion_raw, d4_0, d4_study, d4_std2)
+rm(d4_byquestion_raw, d4_0, d4_std, d4_std2)
 
 contrasts(d4_byquestion$p7_ctry) <- contrasts_country
 contrasts(d4$p7_ctry) <- contrasts_country
