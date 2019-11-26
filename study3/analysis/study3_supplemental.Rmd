@@ -175,33 +175,35 @@ bind_rows(d_alpha_por %>% mutate(scale = "Porosity Scale"),
 
 # Primary analysis, by country
 
+## All together
+
 ```{r}
-r1_us <- lm(spirit_score_std2 ~ por_score_std2, 
-            d3 %>% filter(epi_ctry == "US", epi_sample == "general population"))
+r1_us <- lmer(spirit_score_std ~ por_score_std2 + (1 | epi_sample), 
+              d3 %>% filter(epi_ctry == "US"))
 summary(r1_us)
 ```
 
 ```{r}
-r1_gh <- lm(spirit_score_std2 ~ por_score_std2, 
-            d3 %>% filter(epi_ctry == "Ghana", epi_sample == "general population"))
+r1_gh <- lmer(spirit_score_std ~ por_score_std2 + (1 | epi_sample), 
+              d3 %>% filter(epi_ctry == "Ghana"))
 summary(r1_gh)
 ```
 
 ```{r}
-r1_th <- lm(spirit_score_std2 ~ por_score_std2, 
-            d3 %>% filter(epi_ctry == "Thailand", epi_sample == "general population"))
+r1_th <- lmer(spirit_score_std ~ por_score_std2 + (1 | epi_sample), 
+              d3 %>% filter(epi_ctry == "Thailand"))
 summary(r1_th)
 ```
 
 ```{r}
-r1_ch <- lm(spirit_score_std2 ~ por_score_std2, 
-            d3 %>% filter(epi_ctry == "China", epi_sample == "general population"))
+r1_ch <- lmer(spirit_score_std ~ por_score_std2 + (1 | epi_sample), 
+              d3 %>% filter(epi_ctry == "China"))
 summary(r1_ch)
 ```
 
 ```{r}
-r1_vt <- lm(spirit_score_std2 ~ por_score_std2, 
-            d3 %>% filter(epi_ctry == "Vanuatu", epi_sample == "general population"))
+r1_vt <- lmer(spirit_score_std ~ por_score_std2 + (1 | epi_sample), 
+              d3 %>% filter(epi_ctry == "Vanuatu"))
 summary(r1_vt)
 ```
 
@@ -246,7 +248,7 @@ r1_bycountry_df %>% filter(Parameter == "Porosity Scale") %>%
   rename(" " = signif) %>%
   kable(digits = 2, align = c(rep("l", 2), rep("r", 4), "l")) %>%
   kable_styling() %>%
-  collapse_rows(1:2)
+  collapse_rows(1)
 ```
 
 ```{r}
@@ -263,6 +265,195 @@ r1_bycountry_df %>%
 ```{r}
 d3 %>% 
   filter(epi_sample == "general population") %>%
+  distinct(epi_ctry, epi_subj) %>% 
+  count(epi_ctry)
+```
+
+
+## General population
+
+```{r}
+r1GP_us <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "US", epi_sample == "general population"))
+summary(r1GP_us)
+```
+
+```{r}
+r1GP_gh <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "Ghana", epi_sample == "general population"))
+summary(r1GP_gh)
+```
+
+```{r}
+r1GP_th <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "Thailand", epi_sample == "general population"))
+summary(r1GP_th)
+```
+
+```{r}
+r1GP_ch <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "China", epi_sample == "general population"))
+summary(r1GP_ch)
+```
+
+```{r}
+r1GP_vt <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "Vanuatu", epi_sample == "general population"))
+summary(r1GP_vt)
+```
+
+```{r}
+r1GP_bycountry_df <- rbind(
+  summary(r1GP_us)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "US"),
+  summary(r1GP_gh)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Ghana"),
+  summary(r1GP_th)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Thailand"),
+  summary(r1GP_ch)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "China"),
+  summary(r1GP_vt)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Vanuatu")) %>%
+  mutate(Parameter = recode_factor(Parameter,
+                                   "(Intercept)" = "Intercept",
+                                   "por_score_std2" = "Porosity Scale")) %>%
+  rename(β = Estimate, `Std. Error` = Std..Error, t = t.value,
+          p = Pr...t.., Country = country)
+```
+
+```{r}
+r1GP_bycountry_df %>% filter(Parameter == "Porosity Scale") %>%
+  select(Country, β, `Std. Error`, t, p) %>%
+  mutate(signif = case_when(p < 0.001 ~ "***",
+                            p < 0.01 ~ "**",
+                            p < 0.05 ~ "*",
+                            TRUE ~ ""),
+         p = case_when(p < 0.001 ~ "<0.001",
+                       TRUE ~ format(round(p, 3), nsmall = 3))) %>%
+  rename(" " = signif) %>%
+  kable(digits = 2, align = c(rep("l", 2), rep("r", 4), "l")) %>%
+  kable_styling() %>%
+  collapse_rows(1:2)
+```
+
+```{r}
+r1GP_bycountry_df %>% 
+  filter(Parameter == "Porosity Scale") %>%
+  summarise(min_beta = min(β),
+            max_beta = max(β),
+            min_p = min(p),
+            max_p = max(p)) %>%
+  mutate_at(vars(contains("min_"), contains("max_")),
+            funs(round(., 3)))
+```
+
+```{r}
+d3 %>% 
+  filter(epi_sample == "general population") %>%
+  distinct(epi_ctry, epi_subj) %>% 
+  count(epi_ctry)
+```
+
+## Charismatic Christians
+
+```{r}
+r1CC_us <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "US", epi_sample == "charismatic"))
+summary(r1CC_us)
+```
+
+```{r}
+r1CC_gh <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "Ghana", epi_sample == "charismatic"))
+summary(r1CC_gh)
+```
+
+```{r}
+r1CC_th <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "Thailand", epi_sample == "charismatic"))
+summary(r1CC_th)
+```
+
+```{r}
+r1CC_ch <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "China", epi_sample == "charismatic"))
+summary(r1CC_ch)
+```
+
+```{r}
+r1CC_vt <- lm(spirit_score_std2 ~ por_score_std2, 
+            d3 %>% filter(epi_ctry == "Vanuatu", epi_sample == "charismatic"))
+summary(r1CC_vt)
+```
+
+```{r}
+r1CC_bycountry_df <- rbind(
+  summary(r1CC_us)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "US"),
+  summary(r1CC_gh)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Ghana"),
+  summary(r1CC_th)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Thailand"),
+  summary(r1CC_ch)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "China"),
+  summary(r1CC_vt)$coefficients %>% 
+    data.frame() %>% 
+    rownames_to_column("Parameter") %>%
+    mutate(country = "Vanuatu")) %>%
+  mutate(Parameter = recode_factor(Parameter,
+                                   "(Intercept)" = "Intercept",
+                                   "por_score_std2" = "Porosity Scale")) %>%
+  rename(β = Estimate, `Std. Error` = Std..Error, t = t.value,
+          p = Pr...t.., Country = country)
+```
+
+```{r}
+r1CC_bycountry_df %>% filter(Parameter == "Porosity Scale") %>%
+  select(Country, β, `Std. Error`, t, p) %>%
+  mutate(signif = case_when(p < 0.001 ~ "***",
+                            p < 0.01 ~ "**",
+                            p < 0.05 ~ "*",
+                            TRUE ~ ""),
+         p = case_when(p < 0.001 ~ "<0.001",
+                       TRUE ~ format(round(p, 3), nsmall = 3))) %>%
+  rename(" " = signif) %>%
+  kable(digits = 2, align = c(rep("l", 2), rep("r", 4), "l")) %>%
+  kable_styling() %>%
+  collapse_rows(1:2)
+```
+
+```{r}
+r1CC_bycountry_df %>% 
+  filter(Parameter == "Porosity Scale") %>%
+  summarise(min_beta = min(β),
+            max_beta = max(β),
+            min_p = min(p),
+            max_p = max(p)) %>%
+  mutate_at(vars(contains("min_"), contains("max_")),
+            funs(round(., 3)))
+```
+
+```{r}
+d3 %>% 
+  filter(epi_sample == "charismatic") %>%
   distinct(epi_ctry, epi_subj) %>% 
   count(epi_ctry)
 ```
