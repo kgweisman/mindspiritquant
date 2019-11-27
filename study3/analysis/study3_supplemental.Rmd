@@ -173,6 +173,15 @@ bind_rows(d_alpha_por %>% mutate(scale = "Porosity Scale"),
   column_spec(7, bold = T)
 ```
 
+# Primary analysis, charismatics only
+
+```{r}
+r1_char <- lmer(spirit_score_std ~ por_score_std3 + (1 | epi_ctry), 
+                d3 %>% filter(epi_sample == "charismatic") %>%
+                  mutate(por_score_std3 = scale(por_score)))
+summary(r1_char)
+```
+
 # Primary analysis, by country
 
 ## All together
