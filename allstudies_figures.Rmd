@@ -125,8 +125,8 @@ d_all <- d1 %>%
   rename(spev_score = spirit_score,
          pv_score = por_score) %>%
   mutate(religion = recode_factor(religion,
-                       "indigenous" = "Indigenous Religion",
-                       "charismatic" = "Charismatic Christianity"),
+                                  "indigenous" = "Indigenous Religion",
+                                  "charismatic" = "Charismatic Christianity"),
          # rescale to 0-1
          pv_score = pv_score/3) %>%
   full_join(d2 %>% 
@@ -145,8 +145,8 @@ d_all <- d1 %>%
                      subject_id = epi_subj,
                      spev_score = spirit_score) %>%
               mutate(religion = recode_factor(religion,
-                "general population" = "General Population",
-                "charismatic" = "Charismatic Christianity"))) %>%
+                                              "general population" = "General Population",
+                                              "charismatic" = "Charismatic Christianity"))) %>%
   full_join(d4 %>%
               select(study, p7_ctry, p7_subj, 
                      por_score, pv_score, abs_score, spev_score, dse_score) %>%
@@ -170,10 +170,10 @@ d_all %>%
   ggplot(aes(x = country, y = spev_score, color = country, fill = country,
              group = study)) +
   geom_point(position = position_jitterdodge(jitter.width = 0.25,
-                                   jitter.height = 0,
-                                   dodge.width = 0.75), 
+                                             jitter.height = 0,
+                                             dodge.width = 0.75), 
              alpha = 0.1) +
-  geom_pointrange(data = d_spev %>%
+  geom_pointrange(data = d_all %>%
                     group_by(study, country) %>%
                     summarise(mean = mean(spev_score, na.rm = T),
                               sd = sd(spev_score, na.rm = T)) %>%
@@ -209,8 +209,8 @@ d_all %>%
              group = religion)) +
   facet_grid(~ study, scales = "free", space = "free") +
   geom_point(position = position_jitterdodge(jitter.width = 0.8,
-                                    jitter.height = 0.02,
-                                    dodge.width = 0.75), 
+                                             jitter.height = 0.02,
+                                             dodge.width = 0.75), 
              alpha = 0.15) +
   geom_pointrange(data = d_spev_sum,
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd, 
@@ -239,7 +239,448 @@ d_all %>%
 
 ## Relationships
 
-###  All studies
+### All studies, multipart plot
+
+#### DSE only, cowplot
+
+```{r}
+fig_s1_por <- d_all %>%
+  filter(study == "Study 1") %>%
+  ggplot(aes(x = pv_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Porosity Vignettes",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s1_por
+
+fig_s1_abs <- d_all %>%
+  filter(study == "Study 1") %>%
+  ggplot(aes(x = abs_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Absorption",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s1_abs
+```
+
+```{r}
+fig_s1_title <- ggdraw() + 
+  draw_label("STUDY 1", fontface = 'bold', x = 0, hjust = 0.5) +
+  theme(plot.margin = margin(0, 0, 0, 105))
+
+fig_s1 <- plot_grid(
+  fig_s1_title,
+  plot_grid(fig_s1_por, fig_s1_abs, ncol = 1, labels = c("A", "B")),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s1
+```
+
+```{r}
+fig_s1_title_vert <- ggdraw() + 
+  draw_label("STUDY 1", fontface = 'bold', x = 0, hjust = 0) +
+  theme(plot.margin = margin(0, 0, 0, 7))
+
+fig_s1_vert <- plot_grid(
+  fig_s1_title_vert,
+  plot_grid(fig_s1_por, fig_s1_abs, ncol = 2, labels = c("A", "B")),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s1_vert
+```
+
+```{r}
+fig_s2_abs <- d_all %>%
+  filter(study == "Study 2") %>%
+  ggplot(aes(x = abs_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Absorption",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s2_abs
+```
+
+```{r}
+fig_s2_title <- ggdraw() + 
+  draw_label("STUDY 2", fontface = 'bold', x = 0, hjust = 0.5) +
+  theme(plot.margin = margin(0, 0, 0, 105))
+
+fig_s2 <- plot_grid(
+  fig_s2_title,
+  plot_grid(NULL, fig_s2_abs, ncol = 1, labels = c("", "C")),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s2
+```
+
+```{r}
+fig_s2_title_vert <- ggdraw() + 
+  draw_label("STUDY 2", fontface = 'bold', x = 0, hjust = 0) +
+  theme(plot.margin = margin(0, 0, 0, 7))
+
+fig_s2_vert <- plot_grid(
+  fig_s2_title_vert,
+  plot_grid(NULL, fig_s2_abs, ncol = 2, labels = c("", "C")),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s2_vert
+```
+
+```{r}
+fig_s3_por <- d_all %>%
+  filter(study == "Study 3") %>%
+  ggplot(aes(x = por_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Porosity Scale",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s3_por
+```
+
+```{r}
+fig_s3_title <- ggdraw() + 
+  draw_label("STUDY 3", fontface = 'bold', x = 0, hjust = 0.5) +
+  theme(plot.margin = margin(0, 0, 0, 105))
+
+fig_s3 <- plot_grid(
+  fig_s3_title,
+  plot_grid(fig_s3_por, NULL, ncol = 1, labels = c("D", "")),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s3
+```
+
+```{r}
+fig_s3_title_vert <- ggdraw() + 
+  draw_label("STUDY 3", fontface = 'bold', x = 0, hjust = 0) +
+  theme(plot.margin = margin(0, 0, 0, 7))
+
+fig_s3_vert <- plot_grid(
+  fig_s3_title_vert,
+  plot_grid(fig_s3_por, NULL, ncol = 2, labels = c("D", "")),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s3_vert
+```
+
+```{r}
+fig_s32_vert <- plot_grid(
+  plot_grid(
+    fig_s3_title_vert, 
+    plot_grid(fig_s3_por, labels = c("C")), 
+    ncol = 1, rel_heights = c(1, 10)),
+  plot_grid(
+    fig_s2_title_vert,
+    plot_grid(fig_s2_abs, labels = c("D")), 
+    ncol = 1, rel_heights = c(1, 10))
+)
+```
+
+```{r}
+fig_s4_por1 <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = pv_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Porosity Vignettes",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s4_por1
+
+fig_s4_por2 <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = por_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Porosity Scale",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s4_por2
+
+fig_s4_abs <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = abs_score, y = spev_score)) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "none") +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Absorption",
+       y = "Spiritual Events",
+       color = "Country")
+# fig_s4_abs
+```
+
+```{r}
+fig_s4_title <- ggdraw() + 
+  draw_label("STUDY 4", fontface = 'bold', x = 0, hjust = 0.5) +
+  theme(plot.margin = margin(0, 0, 0, 190))
+
+fig_s4 <- plot_grid(
+  fig_s4_title,
+  plot_grid(plot_grid(fig_s4_por1, fig_s4_por2, ncol = 2, labels = c("E", "F")), 
+            plot_grid(NULL, fig_s4_abs, NULL, ncol = 3, rel_widths = c(1, 2, 1), labels = c("", "G", "")), 
+            ncol = 1),
+  ncol = 1, rel_heights = c(1, 10))
+fig_s4
+```
+
+```{r}
+fig_s4_title_vert <- ggdraw() + 
+  draw_label("STUDY 4", fontface = 'bold', x = 0, hjust = 0) +
+  theme(plot.margin = margin(0, 0, 0, 7))
+
+fig_s4_vert <- plot_grid(
+  fig_s4_title_vert,
+  plot_grid(plot_grid(fig_s4_por1, fig_s4_por2, ncol = 1, labels = c("E", "F")), 
+            plot_grid(NULL, fig_s4_abs, NULL, ncol = 1, rel_heights = c(1, 2, 1), labels = c("", "G", "")), 
+            ncol = 2),
+  ncol = 1, rel_heights = c(1, 20))
+fig_s4_vert
+```
+
+```{r}
+fig_legend <- get_legend(fig_s4_por1 + theme(legend.position = "bottom"))
+```
+
+```{r, fig.width = 6.5, fig.asp = 0.4}
+fig_all <- plot_grid(fig_s1, fig_s2, fig_s3, fig_s4, ncol = 4,
+                     rel_widths = c(1, 1, 1, 2), scale = 0.95)
+fig_all
+```
+
+```{r, fig.width = 3, fig.asp = 2.1}
+fig_all_vert <- plot_grid(fig_s1_vert, fig_s32_vert, fig_s4_vert, fig_legend,
+                          ncol = 1, rel_heights = c(1, 1, 2, 0.2))
+fig_all_vert
+```
+
+#### DSE only, one grid, new layout
+
+```{r, fig.width = 4, fig.asp = 0.7}
+d_all %>%
+  gather(spirit_scale, spirit_score, c(spev_score, dse_score)) %>%
+  gather(pred_scale, pred_score, c(por_score, pv_score, abs_score)) %>%
+  mutate(spirit_scale = recode_factor(spirit_scale,
+                                      "spev_score" = "Spiritual Events",
+                                      "dse_score" = "Daily Spiritual Experiences"),
+         pred_scale = recode_factor(pred_scale,
+                                    "pv_score" = "Porosity Vignettes",
+                                    "por_score" = "Porosity Scale",
+                                    "abs_score" = "Absorption"),
+         pred_type = case_when(pred_scale == "Absorption" ~ "Absorption",
+                               grepl("Porosity", pred_scale) ~ "Porosity",
+                               TRUE ~ NA_character_),
+         pred_type = factor(pred_type, levels = c("Porosity", "Absorption")),
+         study_scale = paste(study, pred_scale, sep = ": "),
+         study_scale2 = case_when(
+           study == "Study 4"  & pred_scale != "Absorption" ~ 
+             paste(study, pred_scale, sep = ": "),
+           TRUE ~ study),
+         study_scale3 = case_when(
+           study == "Study 4" & pred_scale == "Porosity Scale" ~ "Porosity Scale",
+           study %in% c("Study 1", "Study 4") ~ "Porosity Vignettes",
+           study == "Study 2" ~ "Porosity Scale", 
+           TRUE ~ " "),
+         study_scale3 = factor(study_scale3,
+                               levels = c("Porosity Vignettes",
+                                          "Porosity Scale", " "))) %>%
+  filter(!is.na(pred_score),
+         spirit_scale == "Spiritual Events") %>%
+  ggplot(aes(x = pred_score, y = spirit_score)) +
+  facet_grid(rows = vars(pred_type), cols = vars(study, study_scale3)) +
+  # facet_grid(pred_type ~ study_scale3) +
+  geom_point(data = . %>% distinct(study, study_scale3, country, 
+                                   pred_type, pred_scale, pred_score,
+                                   spirit_scale, spirit_score),
+             aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm", 
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  labs(x = "Score on predictor scale (Porosity Vignettes, Porosity Scale, or Absorption; rescaled to 0-1)",
+       y = "Score on Spiritual Events (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+#### DSE only, by study
+
+```{r, fig.width = 1.5, fig.asp = 2}
+fig_s1 <- d_all %>%
+  filter(study == "Study 1") %>%
+  distinct() %>%
+  gather(pred_scale, pred_score, c(pv_score, por_score, abs_score)) %>%
+  mutate(pred_scale = recode_factor(pred_scale,
+                                    "pv_score" = "Porosity Vignettes",
+                                    "por_score" = "Porosity Scale",
+                                    "abs_score" = "Absorption")) %>%
+  # mutate(study_scale = paste(study, pred_scale, sep = ": ")) %>%
+  filter(!is.na(pred_score)) %>%
+  ggplot(aes(x = pred_score, y = spev_score)) +
+  facet_grid(pred_scale ~ study) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm",
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  # theme(legend.position = "bottom", 
+  #       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  # guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  guides(color = F) +
+  labs(x = "Score on predictor scale\n(porosity or absorption; rescaled to 0-1)",
+       y = "Score on Spiritual Events scale (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+```{r, fig.width = 1.5, fig.asp = 2}
+fig_s2 <- d_all %>%
+  filter(study == "Study 2") %>%
+  distinct() %>%
+  gather(pred_scale, pred_score, c(pv_score, por_score, abs_score)) %>%
+  mutate(pred_scale = recode_factor(pred_scale,
+                                    "pv_score" = "Porosity Vignettes",
+                                    "por_score" = "Porosity Scale",
+                                    "abs_score" = "Absorption")) %>%
+  # mutate(study_scale = paste(study, pred_scale, sep = ": ")) %>%
+  filter(!is.na(pred_score)) %>%
+  ggplot(aes(x = pred_score, y = spev_score)) +
+  facet_grid(pred_scale ~ study) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm",
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  # theme(legend.position = "bottom", 
+  #       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  # guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  guides(color = F) +
+  labs(x = "Score on predictor scale\n(porosity or absorption; rescaled to 0-1)",
+       y = "Score on Spiritual Events scale (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+```{r, fig.width = 1.5, fig.asp = 2}
+fig_s3 <- d_all %>%
+  filter(study == "Study 3") %>%
+  distinct() %>%
+  gather(pred_scale, pred_score, c(pv_score, por_score, abs_score)) %>%
+  mutate(pred_scale = recode_factor(pred_scale,
+                                    "pv_score" = "Porosity Vignettes",
+                                    "por_score" = "Porosity Scale",
+                                    "abs_score" = "Absorption")) %>%
+  # mutate(study_scale = paste(study, pred_scale, sep = ": ")) %>%
+  filter(!is.na(pred_score)) %>%
+  ggplot(aes(x = pred_score, y = spev_score)) +
+  facet_grid(pred_scale ~ study) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm",
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  # theme(legend.position = "bottom", 
+  #       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  # guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  guides(color = F) +
+  labs(x = "Score on predictor scale\n(porosity or absorption; rescaled to 0-1)",
+       y = "Score on Spiritual Events scale (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+```{r, fig.width = 1.5, fig.asp = 2}
+fig_s4 <- d_all %>%
+  filter(study == "Study 4") %>%
+  distinct() %>%
+  gather(pred_scale, pred_score, c(pv_score, por_score, abs_score)) %>%
+  mutate(pred_scale = recode_factor(pred_scale,
+                                    "pv_score" = "Porosity Vignettes",
+                                    "por_score" = "Porosity Scale",
+                                    "abs_score" = "Absorption")) %>%
+  # mutate(study_scale = paste(study, pred_scale, sep = ": ")) %>%
+  filter(!is.na(pred_score)) %>%
+  ggplot(aes(x = pred_score, y = spev_score)) +
+  facet_grid(pred_scale ~ study) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm",
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  # theme(legend.position = "bottom", 
+  #       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  # guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  guides(color = F) +
+  labs(x = "Score on predictor scale\n(porosity or absorption; rescaled to 0-1)",
+       y = "Score on Spiritual Events scale (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+#### DSE only, full grid
+
+```{r, fig.width = 4, fig.asp = 0.8}
+d_all %>%
+  distinct() %>%
+  gather(pred_scale, pred_score, c(pv_score, por_score, abs_score)) %>%
+  mutate(pred_scale = recode_factor(pred_scale,
+                                    "pv_score" = "Porosity Vignettes",
+                                    "por_score" = "Porosity Scale",
+                                    "abs_score" = "Absorption")) %>%
+  # mutate(study_scale = paste(study, pred_scale, sep = ": ")) %>%
+  filter(!is.na(pred_score)) %>%
+  ggplot(aes(x = pred_score, y = spev_score)) +
+  facet_grid(pred_scale ~ study) +
+  geom_point(aes(color = country), alpha = 0.1) +
+  geom_smooth(aes(color = country), method = "lm",
+              lty = 2, size = 0.7, alpha = 0, show.legend = F) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  # theme(legend.position = "bottom", 
+  #       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  # guides(color = guide_legend(override.aes = list(alpha = 1))) +
+  guides(color = F) +
+  labs(x = "Score on predictor scale\n(porosity or absorption; rescaled to 0-1)",
+       y = "Score on Spiritual Events scale (rescaled to 0-1)",
+       # caption = "Solid black lines correspond to to the overall trend, collapsing across countries",
+       color = "Country")
+```
+
+#### Broken down by predictor type and spiritual scale
 
 ```{r, fig.width = 4, fig.asp = 0.7}
 d_all %>%
@@ -256,8 +697,8 @@ d_all %>%
   ggplot(aes(x = poros_score, y = spirit_score)) +
   facet_grid(spirit_scale ~ study_scale) +
   geom_point(data = . %>% distinct(study, study_scale, country, 
-                            poros_scale, poros_score,
-                            spirit_scale, spirit_score),
+                                   poros_scale, poros_score,
+                                   spirit_scale, spirit_score),
              aes(color = country), alpha = 0.1) +
   geom_smooth(aes(color = country), method = "lm", 
               lty = 2, size = 0.7, alpha = 0, show.legend = F) +
@@ -283,8 +724,8 @@ d_all %>%
   ggplot(aes(x = abs_score, y = spirit_score)) +
   facet_grid(spirit_scale ~ study_scale) +
   geom_point(data = . %>% distinct(study, study_scale, country, 
-                            abs_score,
-                            spirit_scale, spirit_score),
+                                   abs_score,
+                                   spirit_scale, spirit_score),
              aes(color = country), alpha = 0.2) +
   geom_smooth(aes(color = country), method = "lm", 
               lty = 2, size = 0.7, alpha = 0, show.legend = F) +

@@ -8,6 +8,7 @@ require(psych)
 require(kableExtra)
 require(langcog) # available from: https://github.com/langcog/langcog-package
 require(tidyverse)
+require(cowplot)
 
 # set ggplot theme
 theme_set(theme_bw())
