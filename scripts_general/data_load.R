@@ -1,6 +1,7 @@
 # LOADING DATASETS FOR ALL STUDIES
 
 # study 1 -----
+source("../../study1/scripts_s1/s1_var_groups.R")
 d1 <- read_csv("../../study1/data/study1.csv") %>%
   mutate(country = factor(country, levels = levels_country),
          site = factor(site, levels = levels_site),
@@ -24,6 +25,7 @@ contrasts(d1_byquestion$religion) <- contrasts_religion
 
 
 # study 2 -----
+source("../../study2/scripts_s2/s2_var_groups.R")
 d2_byquestion <- read_csv("../../study2/data/packets123/packets123_data_byquestion_wide.csv") %>%
   filter(packet == 1) %>%
   rename(country = ctry) %>%
@@ -168,6 +170,7 @@ rm(d3a)
 
 
 # study 4 -----
+source("../../study4/scripts_s4/s4_var_groups.R")
 
 d4_byquestion_raw <- read_csv("../../study4/data/study4_byquestion.csv") %>%
   select(-X1) %>%

@@ -46,10 +46,10 @@ s1_var_spirit <- c("godviapeople", "godviascript", "godviamind", "godvoxaloud",
                    "beingentbody", "seehearnotgod", "whitelight", 
                    "trmblshakespirtpwr", "rushofspiritpwr", "intenseemospiritpwr", 
                    "timeslowpray", "mindspiritexitbody", "humanshapeshift",
-                   "spiritbeingencounter")
+                   "spiritbeingencounter", "sleepparalysis")
 
 # other extraordinary experiences
-s1_var_other <- c("sleepparalysis", "voxwhenalone", "seethingscornereye")
+s1_var_other <- c("voxwhenalone", "seethingscornereye")
 
 # scid
 s1_var_scid <- c("specialmessagenotgod_scid", "threatening_scid", 
