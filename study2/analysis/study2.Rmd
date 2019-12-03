@@ -59,7 +59,52 @@ d2 %>%
   count()
 ```
 
-XX FILL IN MORE DEMOGRAPHICS
+```{r}
+# d2_demo <- d2_byquestion %>%
+#   select(subj, country, starts_with("demo_"))
+# 
+# write_csv(d2_demo, "../data/d2_demo.csv")
+```
+
+```{r}
+d2_demo <- read_csv("../data/d2_demo.csv") %>%
+  mutate(male = ifelse(grepl("male", tolower(demo_sex)) &
+                         !grepl("female", tolower(demo_sex)), 1, 0),
+         female = ifelse(grepl("female", tolower(demo_sex)), 1, 0),
+         subject_age = ifelse(demo_age > 120, NA_real_, demo_age),
+         # demo_affr already formatted as 0 = cannot afford, 1 = can afford
+         # demo_ses recoded so that -2 = much poorer, +2 = much richer
+         demo_ses = demo_ses - 3,
+         # demo_howr recoded so that -2 = strongly disagree, +2 = strongly agree
+         demo_howr = demo_howr - 3)
+```
+
+```{r}
+d2_demo %>%
+  group_by(country) %>%
+  summarise(n = n(),
+            age_range = paste0(min(subject_age, na.rm = T), "-",
+                               max(subject_age, na.rm = T)),
+            mean_age = mean(subject_age, na.rm = T),
+            percent_male = mean(male, na.rm = T),
+            percent_female = mean(female, na.rm = T),
+            percent_affr = mean(demo_affr, na.rm = T),
+            mean_ses = mean(demo_ses, na.rm = T),
+            mean_howr = mean(demo_howr, na.rm = T)) %>%
+  ungroup() %>%
+  # mutate_at(vars(starts_with("mean_")), funs(format(round(., 2), nsmall = 2))) %>%
+  mutate_at(vars(starts_with("percent_")),
+            funs(paste0(round(. * 100), "%"))) %>%
+  rename(Country = country,
+         `Age range` = age_range, `Mean age` = mean_age,
+         `% male` = percent_male, `% female` = percent_female,
+         `% can afford` = percent_affr,
+         `Mean SES` = mean_ses,
+         `Mean religiosity` = mean_howr) %>%
+  kable(digits = 2, align = c(rep("l", 3), rep("r", 4))) %>%
+  kable_styling(font_size = 16) # %>%
+  # collapse_rows(1:3)
+```
 
 
 # Predicting Spiritual Experiences
