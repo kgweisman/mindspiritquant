@@ -960,7 +960,7 @@ d4_variance %>%
   scale_linetype_manual(values = c(1, 1, 2)) +
   scale_color_brewer(palette = "Set1", direction = -1) +
   scale_fill_brewer(palette = "Set1", direction = -1) +
-  labs(x = "Score (rescaled to run from 0-1, centerd at the mean by country)",
+  labs(x = "Score (rescaled to run from 0-1, centered at the mean by country)",
        color = "Scale", fill = "Scale", lty = "Scale") +
   theme(legend.position = "bottom")
 ```
