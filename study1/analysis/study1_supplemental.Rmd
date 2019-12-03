@@ -537,7 +537,9 @@ regtab_ran_fun(rr1) %>% regtab_style_fun()
 ```{r}
 rr1a <- lmer(spirit_mod_score_std ~ por_score_std * abs_score_std +
                (1 | country/site/religion),
-             data = d1r_mod)
+             data = d1r_mod,
+             control = lmerControl(optimizer = "bobyqa",
+                                 optCtrl = list(maxfun = 2e5)))
 summary(rr1a)
 ```
 
@@ -582,7 +584,9 @@ regtab_ran_fun(rr1b) %>% regtab_style_fun()
 ```{r}
 r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
              (1 | country/site/religion),
-           data = d1)
+           data = d1,
+           control = lmerControl(optimizer = "bobyqa",
+                                 optCtrl = list(maxfun = 2e5)))
 
 r1_bayes <- readRDS("./models/r1_bayes.RDS")
 ```

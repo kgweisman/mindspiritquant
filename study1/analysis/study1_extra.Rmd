@@ -505,3 +505,132 @@ glmer(response_yn ~ scale(abs_score) + (1 | question) + (1 | country),
 ```
 
 
+# Cultural invitation vs. individual difference
+
+## Amount of variability each predictor, within each site
+
+```{r}
+d1_variance <- d1 %>% 
+  select(country, site, religion, subject_id, abs_score, por_score) %>%
+  gather(var, score, ends_with("_score")) %>%
+  filter(!is.na(score)) %>%
+  mutate(score_rescaled = case_when(var == "abs_score" ~ score/1,
+                                    var == "por_score" ~ score/3)) # called pv_score in study 4
+```
+
+```{r}
+bartlett.test(score_rescaled ~ var, 
+              data = d1_variance %>% filter(country == "US"))
+
+d1_variance %>% 
+  filter(country == "US") %>%
+  group_by(var) %>%
+  summarise(variance = var(score_rescaled))
+```
+
+```{r}
+bartlett.test(score_rescaled ~ var, 
+              data = d1_variance %>% filter(country == "Ghana"))
+
+d1_variance %>% 
+  filter(country == "Ghana") %>%
+  group_by(var) %>%
+  summarise(variance = var(score_rescaled))
+```
+
+```{r}
+bartlett.test(score_rescaled ~ var, 
+              data = d1_variance %>% filter(country == "Thailand"))
+
+d1_variance %>% 
+  filter(country == "Thailand") %>%
+  group_by(var) %>%
+  summarise(variance = var(score_rescaled))
+```
+
+```{r}
+bartlett.test(score_rescaled ~ var, 
+              data = d1_variance %>% filter(country == "China"))
+
+d1_variance %>% 
+  filter(country == "China") %>%
+  group_by(var) %>%
+  summarise(variance = var(score_rescaled))
+```
+
+```{r}
+bartlett.test(score_rescaled ~ var, 
+              data = d1_variance %>% filter(country == "Vanuatu"))
+
+d1_variance %>% 
+  filter(country == "Vanuatu") %>%
+  group_by(var) %>%
+  summarise(variance = var(score_rescaled))
+```
+
+```{r}
+d1_variance %>% 
+  group_by(var, country) %>%
+  summarise(variance = var(score_rescaled)) %>%
+  ungroup() %>%
+  spread(var, variance) %>%
+  rename(Country = country, Absorption = abs_score, 
+         `Porosity Vignettes` = por_score) %>%
+  kable(digits = 2) %>%
+  kable_styling()
+```
+
+```{r, fig.width = 3, fig.asp = 0.6}
+d1_variance %>%
+  group_by(var, country) %>%
+  mutate(score_cent = scale(score_rescaled, scale = F)) %>%
+  ungroup() %>%
+  mutate(var = recode_factor(var,
+                             "por_score" = "Porosity Vignettes",
+                             "abs_score" = "Absorption")) %>%
+  ggplot(aes(x = score_cent, fill = var, color = var, lty = var)) +
+  facet_wrap(country ~ ., ncol = 3) +
+  geom_density(alpha = 0.1) +
+  scale_linetype_manual(values = c(1, 2)) +
+  scale_color_brewer(palette = "Set1", direction = -1) +
+  scale_fill_brewer(palette = "Set1", direction = -1) +
+  labs(x = "Score (rescaled to run from 0-1, centered at the mean by country)",
+       color = "Scale", fill = "Scale", lty = "Scale") +
+  theme(legend.position = "bottom")
+```
+
+```{r, fig.width = 3, fig.asp = 0.8}
+d1_variance %>%
+  group_by(var, country, site, religion) %>%
+  mutate(score_cent = scale(score_rescaled, scale = F)) %>%
+  ungroup() %>%
+  mutate(var = recode_factor(var,
+                             "por_score" = "Porosity Vignettes",
+                             "abs_score" = "Absorption")) %>%
+  ggplot(aes(x = score_cent, fill = var, color = var, lty = var)) +
+  facet_grid(cols = vars(country), rows = vars(site, religion)) +
+  geom_density(alpha = 0.1) +
+  scale_linetype_manual(values = c(1, 2)) +
+  scale_color_brewer(palette = "Set1", direction = -1) +
+  scale_fill_brewer(palette = "Set1", direction = -1) +
+  labs(x = "Score (rescaled to run from 0-1, centered at the mean by country)",
+       color = "Scale", fill = "Scale", lty = "Scale") +
+  theme(legend.position = "bottom")
+```
+
+## Variance accounted for by country
+
+```{r}
+r7 <- lm(por_score_std ~ country, d1)
+regtab_fun(r7, country_var1 = "country_gh", country_var2 = "country_th", country_var3 = "country_ch", country_var4 = "country_vt")
+rsquared(r7)
+```
+
+```{r}
+r9 <- lm(abs_score_std ~ country, d1)
+rsquared(r9)
+```
+
+
+
+

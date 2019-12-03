@@ -168,10 +168,24 @@ cor.test(d1$por_score_std, d1$abs_score_std)
 ## Primary analysis
 
 ```{r}
+```
+
+```{r}
 r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+             # (1 + por_score_std * abs_score_std | country/site/religion), # singular
+             # (1 + por_score_std * abs_score_std || country/site/religion), # singular
+             # (1 + por_score_std + abs_score_std || country/site/religion), # singular
+             # (1 + por_score_std + abs_score_std || country/religion), # singular
+             # (1 + por_score_std + abs_score_std || country/site), # singular
+             # (1 + por_score_std * abs_score_std || country), # singular
+             # (1 + por_score_std + abs_score_std || country), # singular
              (1 | country/site/religion),
              # (1 | country/religion),
-           data = d1)
+             # (1 | country/site),
+             # (1 | country),
+           data = d1,
+           control = lmerControl(optimizer = "bobyqa",
+                                 optCtrl = list(maxfun = 2e5)))
 summary(r1)
 ```
 
