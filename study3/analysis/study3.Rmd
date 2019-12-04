@@ -44,6 +44,145 @@ d3 %>% filter(!is.na(por_score_std),
               !is.na(spirit_score_std)) %>% count()
 ```
 
+```{r}
+d3_demo <- read_csv("../data/d_demo.csv") %>% select(-X1) %>%
+  # correct duplicate entry by hand
+  filter(!(epi_subj == "50807" & is.na(epi_charc))) %>%
+  distinct()
+```
+
+```{r}
+d3_demo <- d3_demo %>%
+  mutate(male = ifelse(grepl("male", tolower(epi_demo_sex)) &
+                         !grepl("female", tolower(epi_demo_sex)), 1, 0),
+         female = ifelse(grepl("female", tolower(epi_demo_sex)), 1, 0),
+         subject_age = ifelse(epi_demo_age > 120, NA_real_, epi_demo_age),
+         # deal with epi_demo_rlgn
+         epi_demo_rlgn = case_when(
+           epi_demo_rlgn %in% 
+             c("7th Day Adventist",
+               "A little Catholicism, pray Jesus",
+               "Apostolic",
+               "Baptist",
+               "Catholic",
+               "Catholic 5 times a year, don't study bible but large part of family make up.",
+               "Catholicism",
+               "Christian",
+               "Christian Baptist",
+               "Christian, raised Catholic",
+               "christianity",
+               "Christianity",
+               "Christianity - possibly Presbyterian / Catholic, Raised Pentecostal",
+               "Christianity, nondenominational",
+               "Christians",
+               "Christiantity",
+               "Church of Latter Day Saints",
+               "Culturally LDS",
+               "Episcopalian",
+               "Grew up Catholic",
+               "ICGC Cape Coast Branch, Christianity",
+               "Jehovah Witness", 
+               "Jehovah's Witness",
+               "LDS Latter Day Saints",
+               "Methodist",
+               "non denominational / Christian",
+               "non-denominational",
+               "Not specific type/denomination, parents bounced around, all Christian",
+               "Orthodox Christian", "Pentecostal", "Pentecostal preacher",
+               "Personal relationship w/ Jesus Christ", "Presbyterian",
+               "Roman Catholic", "SDA (Christianity)",
+               "Seventh Day Adventist Church", "True Jesus Church",
+               "Unitarian Universalism", "United Methodist") ~ "Christian",
+           epi_demo_rlgn %in% 
+             c("Actually believe in Buddhism",
+               "Buddhism", "Buddhism (believe)",
+               "Buddhism / Ancestors (a little bit believe)",
+               "Buddhism, incline to deism",
+               "Buddhism. Practice and has been vegetarian for 20 years",
+               "Buddhist",
+               "Buddhist (interviewed @ church)",
+               "Incline to Buddhism", "Studying Buddhism",
+               "Vipassana Buddhism",
+               "Wat Baan Pong Kiang",
+               "Wat Hua Deng", 
+               "Wat Nong Ban") ~ "Buddhist",
+           # epi_demo_rlgn %in% 
+           #   c("Family - Orthodox Jew / Jewish",
+           #     "Judaism", "Orthodox Jewish") ~ "Jewish",
+           epi_demo_rlgn %in%
+             c("Islam", 
+               "Islam, but not believe anything", 
+               "Islamic", 
+               "Islamic Religion",
+               "Muslim") ~ "Muslim",
+           # epi_demo_rlgn %in% 
+           #   c("Hinduism") ~ "Hindu",
+           grepl("agnost", tolower(epi_demo_rlgn)) |
+             grepl("atheis", tolower(epi_demo_rlgn)) |
+             grepl("don't", tolower(epi_demo_rlgn)) |
+             grepl("none", tolower(epi_demo_rlgn)) |
+             tolower(epi_demo_rlgn) %in% 
+             c("n/a", "no", 
+               tolower("No (ex - JW) Partner Christian - Possibly Korean Baptist"), 
+               "no religion", "no religion, finding one", "not really",
+               tolower("Religion is a choice; I'm not interested in it.")) ~ "Agnostic/Atheist",
+           TRUE ~ "Other"),
+         epi_demo_ubru = recode(epi_demo_ubru,
+                                "Urban" = 1, "Rural" = 0),
+         epi_sample = recode_factor(epi_charc,
+                                    "0" = "general pop.",
+                                    "1" = "charismatic Chr."),
+         agnostic_atheist = (epi_demo_rlgn == "Agnostic/Atheist"),
+         buddhist = (epi_demo_rlgn == "Buddhist"),
+         christian = (epi_demo_rlgn == "Christian"),
+         muslim = (epi_demo_rlgn == "Muslim"),
+         other = (epi_demo_rlgn == "Other"))
+         # epi_demo_ses_num already coded as -2 to +2
+         # epi_demo_howr_num already coded as -2 to +2
+         # epi_demo_affr_num already coded as 1 = yes, 0 = no
+         # epi_charc already coded as 1 = yes, 0 = no
+```
+
+XX BOOKMARK
+
+```{r}
+d3_demo %>%
+  group_by(epi_ctry, epi_sample) %>%
+  summarise(n = n(),
+            age_range = paste0(min(subject_age, na.rm = T), "-",
+                               max(subject_age, na.rm = T)),
+            mean_age = mean(subject_age, na.rm = T),
+            percent_male = mean(male, na.rm = T),
+            percent_female = mean(female, na.rm = T),
+            percent_urban = mean(epi_demo_ubru, na.rm = T),
+            percent_affr = mean(epi_demo_affr_num, na.rm = T),
+            mean_ses = mean(epi_demo_ses_num, na.rm = T),
+            mean_howr = mean(epi_demo_howr_num, na.rm = T),
+            percent_christian = mean(christian, na.rm = T),
+            percent_agnostic_atheist = mean(agnostic_atheist, na.rm = T),
+            percent_buddhist = mean(buddhist, na.rm = T),
+            percent_muslim = mean(muslim, na.rm =T),
+            percent_other = mean(other, na.rm = T)) %>%
+  ungroup() %>%
+  # mutate_at(vars(starts_with("mean_")), funs(format(round(., 2), nsmall = 2))) %>%
+  mutate_at(vars(starts_with("percent_")),
+            funs(paste0(round(. * 100), "%"))) %>%
+  rename(Country = epi_ctry, Sample = epi_sample,
+         `Age range` = age_range, `Mean age` = mean_age,
+         `% male` = percent_male, `% female` = percent_female,
+         `% urban` = percent_urban, `% can afford` = percent_affr,
+         `Mean SES` = mean_ses, `Mean religiosity` = mean_howr,
+         `% Christian` = percent_christian, 
+         `% Agnostic/Atheist` = percent_agnostic_atheist, 
+         `% Buddhist` = percent_buddhist, 
+         `% Muslim` = percent_muslim, 
+         `% Other` = percent_other) %>%
+  mutate(Country = factor(Country, levels = levels_country)) %>%
+  arrange(Country, Sample) %>%
+  kable(digits = 2, align = c(rep("l", 2), rep("r", ncol(.) - 2))) %>%
+  kable_styling(font_size = 16) # %>%
+  # collapse_rows(1:2)
+```
 
 # Predicting Spiritual Events
 
