@@ -288,6 +288,21 @@ rsquared(r2_dse)
 regtab_fun(r2_dse) %>% regtab_style_fun(row_emph = 2)
 ```
 
+```{r}
+coef(r2_dse) %>%
+  data.frame() %>%
+  rename(β = ".") %>%
+  rownames_to_column("term") %>%
+  full_join(sjstats::std_beta(r2_dse, type = "std") %>% 
+              select(term, std.estimate) %>%
+              rename(`β'` = std.estimate)) %>%
+  full_join(sjstats::std_beta(r2_dse, type = "std2") %>% 
+              select(term, std.estimate) %>%
+              rename(`β''` = std.estimate)) %>%
+  mutate_at(vars(-term), funs(format(round(., 2), nsmall = 2))) %>%
+  kable(digits = 2, align = c("l", rep("r", 3))) %>%
+  kable_styling()
+```
 
 ### Spiritual Events
 
@@ -304,4 +319,19 @@ rsquared(r2_spev)
 regtab_fun(r2_spev) %>% regtab_style_fun(row_emph = 2)
 ```
 
+```{r}
+coef(r2_spev) %>%
+  data.frame() %>%
+  rename(β = ".") %>%
+  rownames_to_column("term") %>%
+  full_join(sjstats::std_beta(r2_spev, type = "std") %>% 
+              select(term, std.estimate) %>%
+              rename(`β'` = std.estimate)) %>%
+  full_join(sjstats::std_beta(r2_spev, type = "std2") %>% 
+              select(term, std.estimate) %>%
+              rename(`β''` = std.estimate)) %>%
+  mutate_at(vars(-term), funs(format(round(., 2), nsmall = 2))) %>%
+  kable(digits = 2, align = c("l", rep("r", 3))) %>%
+  kable_styling()
+```
 
