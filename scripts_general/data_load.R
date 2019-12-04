@@ -105,8 +105,6 @@ d3_byquestion <- full_join(read_csv("../../study3/data/d_por.csv") %>%
                            read_csv("../../study3/data/d_spex_base_q2to23.csv") %>% 
                              select(-X1)) %>%
   mutate(study = "study 3") %>%
-  # correct duplicate entry by hand
-  filter(!(epi_subj == "50807" & is.na(epi_charc))) %>%
   distinct() %>%
   filter(question %in% c(s3_var_por, s3_var_spex, s3_var_being, s3_var_other)) %>%
   select(epi_ctry, epi_subj, question, response) %>%

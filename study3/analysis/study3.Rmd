@@ -143,8 +143,6 @@ d3_demo <- d3_demo %>%
          # epi_charc already coded as 1 = yes, 0 = no
 ```
 
-XX BOOKMARK
-
 ```{r}
 d3_demo %>%
   group_by(epi_ctry, epi_sample) %>%
@@ -161,7 +159,7 @@ d3_demo %>%
             percent_christian = mean(christian, na.rm = T),
             percent_agnostic_atheist = mean(agnostic_atheist, na.rm = T),
             percent_buddhist = mean(buddhist, na.rm = T),
-            percent_muslim = mean(muslim, na.rm =T),
+            percent_muslim = mean(muslim, na.rm = T),
             percent_other = mean(other, na.rm = T)) %>%
   ungroup() %>%
   # mutate_at(vars(starts_with("mean_")), funs(format(round(., 2), nsmall = 2))) %>%
