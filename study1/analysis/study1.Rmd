@@ -284,19 +284,7 @@ regtab_fun(r2, por_name = "Porosity Vignettes") %>%
 ```
 
 ```{r}
-coef(r2) %>%
-  data.frame() %>%
-  rename(β = ".") %>%
-  rownames_to_column("term") %>%
-  full_join(sjstats::std_beta(r2, type = "std") %>% 
-              select(term, std.estimate) %>%
-              rename(`β'` = std.estimate)) %>%
-  full_join(sjstats::std_beta(r2, type = "std2") %>% 
-              select(term, std.estimate) %>%
-              rename(`β''` = std.estimate)) %>%
-  mutate_at(vars(-term), funs(format(round(., 2), nsmall = 2))) %>%
-  kable(digits = 2, align = c("l", rep("r", 3))) %>%
-  kable_styling()
+beta_fun(r2) %>% beta_style_fun()
 ```
 
 

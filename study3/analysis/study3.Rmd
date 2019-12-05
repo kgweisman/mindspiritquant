@@ -277,6 +277,11 @@ regtab_fun(r2,
   regtab_style_fun(row_emph = 2)
 ```
 
+```{r}
+beta_fun(r2, find_name = "epi_sample", replace_name = "epi_sample_ch") %>% 
+  beta_style_fun()
+```
+
 
 # Predicting Other Extraordinary Events
 

@@ -255,3 +255,40 @@ icc_fun <- function(df, var_name = NA,
 }
 
 
+# function for getting three kinds of regression coefficient estimates
+beta_fun <- function(reg, find_name = " ", replace_name = " "){
+  require(sjstats)
+  
+  if ("lmerModLmerTest" %in% class(reg)) {
+    res_tab1 <- fixef(reg)
+  } else {
+    res_tab1 <- coef(reg)
+  }
+  
+  res_tab <- res_tab1 %>%
+    data.frame() %>%
+    rename(β = ".") %>%
+    rownames_to_column("term") %>%
+    full_join(std_beta(reg, type = "std") %>%
+                select(term, std.estimate) %>%
+                rename("β'" = std.estimate)) %>%
+    full_join(std_beta(reg, type = "std2") %>% 
+                select(term, std.estimate) %>%
+                rename("β''" = std.estimate) %>%
+                mutate(term = gsub(find_name, replace_name, term))) 
+  
+  return(res_tab)
+}
+
+beta_style_fun <- function(tab){
+  res_tab <- tab %>%
+    mutate_at(vars(-term), funs(format(round(., 2), nsmall = 2))) %>%
+    kable(digits = 2, align = c("l", rep("r", 3))) %>%
+    kable_styling()
+  
+  return(res_tab)
+}
+
+
+
+
