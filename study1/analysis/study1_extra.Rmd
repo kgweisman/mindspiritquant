@@ -632,5 +632,80 @@ rsquared(r9)
 ```
 
 
+# Country, site, and religion as fixed effects
 
+```{r}
+r10 <- lm(spirit_score_std ~ por_score_std * abs_score_std * 
+            country * site * religion, d1)
+# summary(r10)
+```
+
+```{r}
+regtab_fun(r10) %>% regtab_style_fun(row_emph = 2:3)
+```
+
+```{r}
+r11 <- lm(spirit_score_std ~ por_score_std * abs_score_std * country * religion, d1)
+# summary(r11)
+```
+
+```{r}
+regtab_fun(r11) %>% regtab_style_fun(row_emph = 2:3)
+```
+
+```{r}
+r12 <- lm(spirit_score_std ~ por_score_std * abs_score_std * country * site, d1)
+# summary(r12)
+```
+
+```{r}
+regtab_fun(r12) %>% regtab_style_fun(row_emph = 2:3)
+```
+
+
+# Predicting Other Extraordinary Events
+
+```{r}
+r3 <- lmer(other_score_std ~ por_score_std * abs_score_std +
+             (1 | country/site/religion),
+             # (1 | country/religion),
+           data = d1)
+summary(r3)
+```
+
+```{r}
+rsquared(r3)
+```
+
+```{r}
+regtab_fun(r3, por_name = "Porosity Vignettes") %>%
+  regtab_style_fun(row_emph = 2:3)
+```
+
+```{r}
+regtab_ran_fun(r3) %>% regtab_style_fun()
+```
+
+## Recoding
+
+```{r}
+rr3 <- lmer(other_recoded_std ~ por_score_std * abs_score_std +
+              (1 | country/site/religion),
+            # (1 | country/religion),
+            data = d1r)
+summary(rr3)
+```
+
+```{r}
+piecewiseSEM::rsquared(rr3)
+```
+
+```{r}
+regtab_fun(rr3, por_name = "Porosity Vignettes") %>% 
+  regtab_style_fun(row_emph = 2:3)
+```
+
+```{r}
+regtab_ran_fun(rr3) %>% regtab_style_fun()
+```
 

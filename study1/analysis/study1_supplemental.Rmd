@@ -407,8 +407,8 @@ s1r_perag_df <- d1r_irr %>%
 ```
 
 ```{r}
-# s1r_perag_df %>% arrange(percent_agree)
-# s1r_perag_df %>% count(reliability) %>% mutate(prop = n/sum(n))
+s1r_perag_df %>% filter(scale == "spiritual experiences") %>% arrange(percent_agree)
+s1r_perag_df %>% filter(scale == "spiritual experiences") %>% count(reliability) %>% mutate(prop = n/sum(n))
 s1r_perag_df %>% 
   mutate(scale = recode_factor(scale,
                                "spiritual experiences" = "spiritual",
@@ -816,27 +816,4 @@ regtab_fun(rr2, por_name = "Porosity Vignettes") %>%
   regtab_style_fun(row_emph = 2:3)
 ```
 
-
-## Predicting Other Extraordinary Events
-
-```{r}
-rr3 <- lmer(other_recoded_std ~ por_score_std * abs_score_std +
-              (1 | country/site/religion),
-            # (1 | country/religion),
-            data = d1r)
-summary(rr3)
-```
-
-```{r}
-piecewiseSEM::rsquared(rr3)
-```
-
-```{r}
-regtab_fun(rr3, por_name = "Porosity Vignettes") %>% 
-  regtab_style_fun(row_emph = 2:3)
-```
-
-```{r}
-regtab_ran_fun(rr3) %>% regtab_style_fun()
-```
 

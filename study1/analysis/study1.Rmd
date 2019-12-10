@@ -168,9 +168,6 @@ cor.test(d1$por_score_std, d1$abs_score_std)
 ## Primary analysis
 
 ```{r}
-```
-
-```{r}
 r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
              # (1 + por_score_std * abs_score_std | country/site/religion), # singular
              # (1 + por_score_std * abs_score_std || country/site/religion), # singular
@@ -287,27 +284,4 @@ regtab_fun(r2, por_name = "Porosity Vignettes") %>%
 beta_fun(r2) %>% beta_style_fun()
 ```
 
-
-# Predicting Other Extraordinary Events
-
-```{r}
-r3 <- lmer(other_score_std ~ por_score_std * abs_score_std +
-             (1 | country/site/religion),
-             # (1 | country/religion),
-           data = d1)
-summary(r3)
-```
-
-```{r}
-rsquared(r3)
-```
-
-```{r}
-regtab_fun(r3, por_name = "Porosity Vignettes") %>%
-  regtab_style_fun(row_emph = 2:3)
-```
-
-```{r}
-regtab_ran_fun(r3) %>% regtab_style_fun()
-```
 
