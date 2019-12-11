@@ -234,6 +234,9 @@ r1h <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
               (1 | country) +
               (0 + por_score_std | country) +
               (0 + abs_score_std | country),
+            data = d1) # singular, failed to converge
+r1i <- lmer(spirit_score_std ~ por_score_std + abs_score_std + 
+              (1 + por_score_std + abs_score_std || country),
             data = d1) # singular
 ```
 
