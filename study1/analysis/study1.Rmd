@@ -34,18 +34,18 @@ d1 %>% count()
 
 ```{r}
 # participants missing porosity vignettes score
-d1 %>% filter(is.na(por_score_std)) %>% count()
+d1 %>% filter(is.na(pv_score_std)) %>% count()
 
 # participants missing absorption score
 d1 %>% filter(is.na(abs_score_std)) %>% count()
 
 # participants missing spiritual experiences score
-d1 %>% filter(is.na(spirit_score_std)) %>% count()
+d1 %>% filter(is.na(spev_score_std)) %>% count()
 
 # participants with complete data for primary analysis
-d1 %>% filter(!is.na(por_score_std),
+d1 %>% filter(!is.na(pv_score_std),
               !is.na(abs_score_std),
-              !is.na(spirit_score_std)) %>% count()
+              !is.na(spev_score_std)) %>% count()
 ```
 
 ```{r}
@@ -146,20 +146,20 @@ d1_demo %>%
 
 ```{r}
 d1 %>% 
-  select(por_score_std, abs_score_std, spirit_score_std) %>% 
+  select(pv_score_std, abs_score_std, spev_score_std) %>% 
   cor(use = "pairwise.complete")
 ```
 
 ```{r}
-cor.test(d1$por_score_std, d1$spirit_score_std)
+cor.test(d1$pv_score_std, d1$spev_score_std)
 ```
 
 ```{r}
-cor.test(d1$abs_score_std, d1$spirit_score_std)
+cor.test(d1$abs_score_std, d1$spev_score_std)
 ```
 
 ```{r}
-cor.test(d1$por_score_std, d1$abs_score_std)
+cor.test(d1$pv_score_std, d1$abs_score_std)
 ```
 
 
@@ -168,14 +168,14 @@ cor.test(d1$por_score_std, d1$abs_score_std)
 ## Primary analysis
 
 ```{r}
-r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
-             # (1 + por_score_std * abs_score_std | country/site/religion), # singular
-             # (1 + por_score_std * abs_score_std || country/site/religion), # singular
-             # (1 + por_score_std + abs_score_std || country/site/religion), # singular
-             # (1 + por_score_std + abs_score_std || country/religion), # singular
-             # (1 + por_score_std + abs_score_std || country/site), # singular
-             # (1 + por_score_std * abs_score_std || country), # singular
-             # (1 + por_score_std + abs_score_std || country), # singular
+r1 <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
+             # (1 + pv_score_std * abs_score_std | country/site/religion), # singular
+             # (1 + pv_score_std * abs_score_std || country/site/religion), # singular
+             # (1 + pv_score_std + abs_score_std || country/site/religion), # singular
+             # (1 + pv_score_std + abs_score_std || country/religion), # singular
+             # (1 + pv_score_std + abs_score_std || country/site), # singular
+             # (1 + pv_score_std * abs_score_std || country), # singular
+             # (1 + pv_score_std + abs_score_std || country), # singular
              (1 | country/site/religion),
              # (1 | country/religion),
              # (1 | country/site),
@@ -191,7 +191,7 @@ rsquared(r1)
 ```
 
 ```{r}
-regtab_fun(r1, por_name = "Porosity Vignettes") %>% 
+regtab_fun(r1, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -203,47 +203,47 @@ regtab_ran_fun(r1) %>% regtab_style_fun()
 
 ```{r}
 # more complex random effects structures: NOT REPORTED
-r1a <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
-              (1 + por_score_std * abs_score_std | country/site/religion), 
+r1a <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
+              (1 + pv_score_std * abs_score_std | country/site/religion), 
             data = d1) # singular, failed to converge
-r1b <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
-              (1 + por_score_std * abs_score_std || country/site/religion), 
+r1b <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
+              (1 + pv_score_std * abs_score_std || country/site/religion), 
             data = d1) # singular
-r1c <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
-              (1 + por_score_std + abs_score_std | country/site/religion), 
+r1c <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
+              (1 + pv_score_std + abs_score_std | country/site/religion), 
             data = d1) # singular, failed to converge
-r1d <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
-              (1 + por_score_std + abs_score_std || country/site/religion), 
+r1d <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
+              (1 + pv_score_std + abs_score_std || country/site/religion), 
             data = d1) # singular
-r1e <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+r1e <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
               (1 | country/site/religion) +
-              (0 + por_score_std | country/site/religion) +
+              (0 + pv_score_std | country/site/religion) +
               (0 + abs_score_std | country/site/religion),
             data = d1) # singular
-r1f <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+r1f <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
               (1 | country/site/religion) +
-              (0 + por_score_std | country/site) +
+              (0 + pv_score_std | country/site) +
               (0 + abs_score_std | country/site),
             data = d1) # singular
-r1g <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+r1g <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
               (1 | country/site/religion) +
-              (0 + por_score_std | country) +
+              (0 + pv_score_std | country) +
               (0 + abs_score_std | country),
             data = d1) # overparameterized? only 2-3 dfs left to test main effects
-r1h <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+r1h <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
               (1 | country) +
-              (0 + por_score_std | country) +
+              (0 + pv_score_std | country) +
               (0 + abs_score_std | country),
             data = d1) # singular, failed to converge
-r1i <- lmer(spirit_score_std ~ por_score_std + abs_score_std + 
-              (1 + por_score_std + abs_score_std || country),
+r1i <- lmer(spev_score_std ~ pv_score_std + abs_score_std + 
+              (1 + pv_score_std + abs_score_std || country),
             data = d1) # singular
 ```
 
 ## Bayesian regression
 
 ```{r}
-# r1_bayes <- brm(spirit_score_std ~ por_score_std * abs_score_std +
+# r1_bayes <- brm(spev_score_std ~ pv_score_std * abs_score_std +
 #                   (1 | country/site/religion), d1,
 #                 control = list(adapt_delta = 0.99),
 #                 seed = 1234, cores = 4, chains = 4)
@@ -259,7 +259,7 @@ bayes_R2(r1_bayes)
 ```
 
 ```{r}
-regtab_fun(r1_bayes, por_name = "Porosity Vignettes") %>% 
+regtab_fun(r1_bayes, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -270,7 +270,7 @@ regtab_ran_fun(r1_bayes) %>% regtab_style_fun()
 ## Country as fixed effect
 
 ```{r}
-r2 <- lm(spirit_score_std ~ por_score_std * abs_score_std * country, d1)
+r2 <- lm(spev_score_std ~ pv_score_std * abs_score_std * country, d1)
 summary(r2)
 ```
 
@@ -279,7 +279,7 @@ piecewiseSEM::rsquared(r2)
 ```
 
 ```{r}
-regtab_fun(r2, por_name = "Porosity Vignettes") %>% 
+regtab_fun(r2, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 

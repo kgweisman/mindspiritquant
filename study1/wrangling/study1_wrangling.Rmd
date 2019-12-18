@@ -10,6 +10,11 @@ output:
 In this notebook, we take our raw dataset from Study 1, anonymize it, score it, and create a sharable dataset.
 
 ```{r}
+library(naniar)
+```
+
+
+```{r}
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
 ```
@@ -31,7 +36,7 @@ d1_0 <- d1_raw %>%
     !subject_name %in% s1_omitsubj_us_nonchristian,
     # exclude 1 non-American from US sample
     !subject_name %in% s1_omitsubj_us_nonamerican,
-    # exclude 10 Catholics from Ghanaian indigenous sample
+    # exclude 10 Catholics from Ghanaian local sample
     !subject_name %in% s1_omitsubj_gh_catholic,
     # exclude 18 participants from Esalen (not part of this study!)
     !subject_name %in% s1_omitsubj_us_esalen) %>%
@@ -44,6 +49,10 @@ d1_0 <- d1_raw %>%
 source("../../scripts_general/var_recode_contrast.R")
 
 d1_1 <- d1_0 %>%
+  # standardize missing value notation
+  replace_with_na_all(condition = ~.x %in% c("NA", "Na", "NaN", "\\.")) %>%
+  # recode two variables coded as character
+  mutate_at(vars(doublyreal_abs, abs_score), funs(as.numeric)) %>%
   # recode categorical variables
   mutate(date = parse_date(date, format = "%m/%d/%y %H:%M"),
          researcher = factor(researcher, levels = levels_researcher),
@@ -53,14 +62,14 @@ d1_1 <- d1_0 %>%
                           grepl("RURAL", quad) ~ "rural",
                           TRUE ~ NA_character_),
          site = factor(site, levels = levels_site),
-         religion = case_when(grepl("NON-", quad) ~ "indigenous",
+         religion = case_when(grepl("NON-", quad) ~ "local",
                               grepl("CHRISTIAN", quad) & 
                                 !grepl("NON-", quad) ~ "charismatic",
                               TRUE ~ NA_character_),
-         religion = factor(religion, levels = levels_religion)) %>%
-  # deal with "." instead of "NA" for missing data in two variables
-  mutate_at(vars(doublyreal_abs, abs_score),
-            funs(as.numeric(gsub("\\.", "NA", .))))
+         religion = factor(religion, levels = levels_religion),
+         subject_gender = case_when(grepl("Female", subject_gender) ~ "Female",
+                                    grepl("Male", subject_gender) ~ "Male",
+                                    TRUE ~ subject_gender))
 ```
 
 ```{r}
@@ -70,7 +79,7 @@ d1_2 <- d1_1[sample(nrow(d1_1)), ] %>%
   rownames_to_column("rand") %>%
   mutate(rand = as.numeric(rand)) %>%
   arrange(rand) %>%
-  mutate(subject_id = 10001:(10000+nrow(d1_1)))
+  mutate(subject_id = 10001:(10000 + nrow(d1_1)))
 ```
 
 ```{r}
@@ -82,7 +91,7 @@ d1_3 <- d1_2 %>%
   select(s1_var_demo) %>%
   # score porosity vignettes
   full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_por)) %>%
-              rename(por_score = score)) %>%
+              rename(pv_score = score)) %>%
   # score absorption
   full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_abs)) %>%
               rename(abs_score_calc = score)) %>%
@@ -102,7 +111,7 @@ d1_3 <- d1_2 %>%
   select(-abs_score_calc, -abs_score_rec) %>%
   # score spiritual experiences
   full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_spirit)) %>%
-              rename(spirit_score = score)) %>%
+              rename(spev_score = score)) %>%
   # score other extraordinary experiences
   full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_other)) %>%
               rename(other_score = score))
@@ -114,13 +123,17 @@ d1_4 <- d1_3 %>%
   mutate(study = "study 1") %>%
   group_by(study) %>%
   # add standardized scores (collapsing across sites)
-  mutate_at(vars(por_score, abs_score, spirit_score, other_score), 
+  mutate_at(vars(pv_score, abs_score, spev_score, other_score), 
             funs("std" = scale)) %>%
   # add standardized scores (within sites)
   group_by(country) %>%
-  mutate_at(vars(por_score, abs_score, spirit_score, other_score), 
-            funs("std2" = scale)) %>%
-  ungroup()
+  mutate_at(vars(pv_score, abs_score, spev_score, other_score), 
+            funs("std_withincountry" = scale)) %>%
+  ungroup() %>%
+  # standardize missing value notation
+  mutate_at(vars(contains("score")), 
+            funs(case_when(is.nan(.) ~ NA_real_, 
+                           TRUE ~ .)))
 ```
 
 ```{r}
@@ -145,7 +158,7 @@ d1r_0 <- d1r_raw %>%
     !subject_name %in% s1_omitsubj_us_nonchristian,
     # exclude 1 non-American from US sample
     !subject_name %in% s1_omitsubj_us_nonamerican,
-    # exclude 10 Catholics from Ghanaian indigenous sample
+    # exclude 10 Catholics from Ghanaian local sample
     !subject_name %in% s1_omitsubj_gh_catholic,
     # exclude 18 participants from Esalen (not part of this study!)
     !subject_name %in% s1_omitsubj_us_esalen) %>%
@@ -156,6 +169,8 @@ d1r_0 <- d1r_raw %>%
 ```{r}
 # clean up variables
 d1r_1 <- d1r_0 %>%
+  # standardize missing value notation
+  replace_with_na_all(condition = ~.x %in% c("NA", "Na", "NaN", "\\.")) %>%
   # recode categorical variables
   mutate(researcher = factor(researcher, levels = levels_researcher),
          country = factor(country, levels = levels_country),
@@ -163,7 +178,7 @@ d1r_1 <- d1r_0 %>%
                           grepl("RURAL", quad) ~ "rural",
                           TRUE ~ NA_character_),
          site = factor(site, levels = levels_site),
-         religion = case_when(grepl("NON-", quad) ~ "indigenous",
+         religion = case_when(grepl("NON-", quad) ~ "local",
                               grepl("CHRISTIAN", quad) & 
                                 !grepl("NON-", quad) ~ "charismatic",
                               TRUE ~ NA_character_),
@@ -201,7 +216,7 @@ d1r_3 <- d1r_2 %>%
   select(researcher, country, site, religion, coder, subject_id) %>%
   # score spiritual experiences
   full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_spirit)) %>%
-              rename(spirit_score = score)) %>%
+              rename(spev_score = score)) %>%
   # score other extraordinary experiences
   full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_other)) %>%
               rename(other_score = score))
@@ -213,13 +228,17 @@ d1r_4 <- d1r_3 %>%
   mutate(study = "study 1") %>%
   group_by(study) %>%
   # add standardized scores (collapsing across sites)
-  mutate_at(vars(spirit_score, other_score), 
+  mutate_at(vars(spev_score, other_score), 
             funs("std" = scale)) %>%
   # add standardized scores (within sites)
   group_by(country) %>%
-  mutate_at(vars(spirit_score, other_score), 
-            funs("std2" = scale)) %>%
-  ungroup()
+  mutate_at(vars(spev_score, other_score), 
+            funs("std_withincountry" = scale)) %>%
+  ungroup() %>%
+  # standardize missing value notation
+  mutate_at(vars(contains("score")), 
+            funs(case_when(is.nan(.) ~ NA_real_, 
+                           TRUE ~ .)))
 ```
 
 ```{r}

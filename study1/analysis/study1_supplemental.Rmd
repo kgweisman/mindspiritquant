@@ -22,9 +22,9 @@ source("../scripts_s1/s1_var_groups.R")
 # Missing data
 
 ```{r}
-d1 %>% filter(!is.na(por_score_std),
+d1 %>% filter(!is.na(pv_score_std),
               !is.na(abs_score_std),
-              !is.na(spirit_score_std)) %>% 
+              !is.na(spev_score_std)) %>% 
   distinct(subject_id) %>%
   left_join(d1_byquestion %>%
               select(subject_id, s1_var_por, s1_var_abs, 
@@ -44,9 +44,9 @@ d1 %>% filter(!is.na(por_score_std),
 ```
 
 ```{r}
-d1 %>% filter(!is.na(por_score_std),
+d1 %>% filter(!is.na(pv_score_std),
               !is.na(abs_score_std),
-              !is.na(spirit_score_std)) %>% 
+              !is.na(spev_score_std)) %>% 
   distinct(subject_id) %>%
   left_join(d1_byquestion %>%
               select(subject_id, s1_var_por, s1_var_abs, 
@@ -180,7 +180,7 @@ reg_check_fun <- function(df, var_omit){
     mutate(score_std = scale(score)) %>% full_join(d1)
   
   # run primary analysis
-  r0 <- lmer(score_std ~ por_score_std * abs_score_std +
+  r0 <- lmer(score_std ~ pv_score_std * abs_score_std +
                (1 | country/site/religion), data = d)
   r0_tab <- summary((r0))$coefficients[] %>%
     data.frame() %>%
@@ -222,9 +222,9 @@ reg_check_df %>%
          omitted = factor(omitted, 
                           levels = c("ALL VARIABLES INCLUDED", s1_var_spirit)),
          param = recode_factor(param,
-                               "por_score_std" = "Porosity Vignettes",
+                               "pv_score_std" = "Porosity Vignettes",
                                "abs_score_std" = "Absorption",
-                               "por_score_std:abs_score_std" = "Interaction")) %>%
+                               "pv_score_std:abs_score_std" = "Interaction")) %>%
   ggplot(aes(x = b, y = reorder(omitted, desc(omitted)), 
              shape = mod_type, size = mod_type, fill = signif)) + 
   facet_grid(~ param) +
@@ -244,7 +244,7 @@ reg_brms_check_fun <- function(df, var_omit){
   d <- score_fun(df = df, var_omit = var_omit) %>%
     mutate(score_std = scale(score)) %>% full_join(d1)
   
-  r0 <- brm(score_std ~ por_score_std * abs_score_std + 
+  r0 <- brm(score_std ~ pv_score_std * abs_score_std + 
               (1 | country/site/religion), data = d,
             control = list(adapt_delta = 0.99),
             seed = 1234, cores = 4, chains = 4)
@@ -295,9 +295,9 @@ reg_brms_check_df %>%
               mutate(omitted = "ALL VARIABLES INCLUDED")) %>%
   filter(param != "Intercept") %>%
   mutate(param = recode_factor(param,
-                               "por_score_std" = "Porosity",
+                               "pv_score_std" = "Porosity",
                                "abs_score_std" = "Absorption",
-                               "por_score_std:abs_score_std" = "Interaction"),
+                               "pv_score_std:abs_score_std" = "Interaction"),
          omitted = factor(omitted, 
                           levels = c("ALL VARIABLES INCLUDED", s1_var_spirit))) %>%
   mutate(mod_type = case_when(omitted == "ALL VARIABLES INCLUDED" ~ "all",
@@ -513,7 +513,7 @@ contrasts(d1r_mod$country) <- contrasts_country
 ### Recoded (full scale)
 
 ```{r}
-rr1 <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
+rr1 <- lmer(spev_recoded_std ~ pv_score_std * abs_score_std +
               (1 | country/site/religion),
             data = d1r)
 summary(rr1)
@@ -524,7 +524,7 @@ piecewiseSEM::rsquared(rr1)
 ```
 
 ```{r}
-regtab_fun(rr1, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr1, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -535,7 +535,7 @@ regtab_ran_fun(rr1) %>% regtab_style_fun()
 ### Original (limited scale)
 
 ```{r}
-rr1a <- lmer(spirit_mod_score_std ~ por_score_std * abs_score_std +
+rr1a <- lmer(spirit_mod_score_std ~ pv_score_std * abs_score_std +
                (1 | country/site/religion),
              data = d1r_mod,
              control = lmerControl(optimizer = "bobyqa",
@@ -548,7 +548,7 @@ piecewiseSEM::rsquared(rr1a)
 ```
 
 ```{r}
-regtab_fun(rr1a, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr1a, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -559,7 +559,7 @@ regtab_ran_fun(rr1a) %>% regtab_style_fun()
 ### Recoded (limited scale)
 
 ```{r}
-rr1b <- lmer(spirit_mod_recoded_std ~ por_score_std * abs_score_std +
+rr1b <- lmer(spirit_mod_recoded_std ~ pv_score_std * abs_score_std +
                # (1 | country/site/religion), # fails to converge
                (1 | country/religion),
              data = d1r_mod)
@@ -571,7 +571,7 @@ piecewiseSEM::rsquared(rr1b)
 ```
 
 ```{r}
-regtab_fun(rr1b, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr1b, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -582,7 +582,7 @@ regtab_ran_fun(rr1b) %>% regtab_style_fun()
 ### Comparison of models
 
 ```{r}
-r1 <- lmer(spirit_score_std ~ por_score_std * abs_score_std +
+r1 <- lmer(spev_score_std ~ pv_score_std * abs_score_std +
              (1 | country/site/religion),
            data = d1,
            control = lmerControl(optimizer = "bobyqa",
@@ -613,9 +613,9 @@ r1_comp_df <- bind_rows(
             funs(as.numeric)) %>%
   mutate(Parameter = recode_factor(Parameter,
                                    "(Intercept)" = "Intercept",
-                                   "por_score_std" = "Porosity Vignettes", 
+                                   "pv_score_std" = "Porosity Vignettes", 
                                    "abs_score_std" = "Absorption",
-                                   "por_score_std:abs_score_std" = "Porosity Vignettes × Absorption"))
+                                   "pv_score_std:abs_score_std" = "Porosity Vignettes × Absorption"))
 ```
 
 ```{r}
@@ -651,17 +651,17 @@ r1_comp_df %>%
 
 ```{r}
 # more complex random effects structures: NOT REPORTED
-rr1w <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
-               (1 + por_score_std * abs_score_std | country/site/religion), 
+rr1w <- lmer(spev_recoded_std ~ pv_score_std * abs_score_std +
+               (1 + pv_score_std * abs_score_std | country/site/religion), 
              data = d1r) # singular
-rr1x <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
-               (1 + por_score_std * abs_score_std || country/site/religion), 
+rr1x <- lmer(spev_recoded_std ~ pv_score_std * abs_score_std +
+               (1 + pv_score_std * abs_score_std || country/site/religion), 
              data = d1r) # singular, failed to converge
-rr1y <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
-               (1 + por_score_std + abs_score_std | country/site/religion), 
+rr1y <- lmer(spev_recoded_std ~ pv_score_std * abs_score_std +
+               (1 + pv_score_std + abs_score_std | country/site/religion), 
              data = d1r) # singular
-rr1z <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
-               (1 + por_score_std + abs_score_std || country/site/religion), 
+rr1z <- lmer(spev_recoded_std ~ pv_score_std * abs_score_std +
+               (1 + pv_score_std + abs_score_std || country/site/religion), 
              data = d1r) # singular
 ```
 
@@ -670,7 +670,7 @@ rr1z <- lmer(spirit_recoded_std ~ por_score_std * abs_score_std +
 ### Recoded (full scale)
 
 ```{r}
-# rr1_bayes <- brm(spirit_recoded_std ~ por_score_std * abs_score_std +
+# rr1_bayes <- brm(spev_recoded_std ~ pv_score_std * abs_score_std +
 #                   (1 | country/site/religion), d1r,
 #                 control = list(adapt_delta = 0.999),
 #                 seed = 1234, cores = 4, chains = 4)
@@ -686,7 +686,7 @@ bayes_R2(rr1_bayes)
 ```
 
 ```{r}
-regtab_fun(rr1_bayes, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr1_bayes, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -697,7 +697,7 @@ regtab_ran_fun(rr1_bayes) %>% regtab_style_fun()
 ### Original (limited scale)
 
 ```{r}
-# rr1a_bayes <- brm(spirit_mod_score_std ~ por_score_std * abs_score_std +
+# rr1a_bayes <- brm(spirit_mod_score_std ~ pv_score_std * abs_score_std +
 #                   (1 | country/site/religion), d1r_mod,
 #                 control = list(adapt_delta = 0.999),
 #                 seed = 1234, cores = 4, chains = 4)
@@ -713,7 +713,7 @@ bayes_R2(rr1a_bayes)
 ```
 
 ```{r}
-regtab_fun(rr1a_bayes, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr1a_bayes, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -724,7 +724,7 @@ regtab_ran_fun(rr1a_bayes) %>% regtab_style_fun()
 ### Recoded (limited scale)
 
 ```{r}
-# rr1b_bayes <- brm(spirit_mod_recoded_std ~ por_score_std * abs_score_std +
+# rr1b_bayes <- brm(spirit_mod_recoded_std ~ pv_score_std * abs_score_std +
 #                   (1 | country/site/religion), d1r_mod,
 #                 control = list(adapt_delta = 0.999),
 #                 seed = 1234, cores = 4, chains = 4)
@@ -740,7 +740,7 @@ bayes_R2(rr1b_bayes)
 ```
 
 ```{r}
-regtab_fun(rr1b_bayes, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr1b_bayes, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
 
@@ -767,9 +767,9 @@ r1_bayes_comp_df <- bind_rows(
   mutate_at(vars(Estimate, Est.Error, Q2.5, Q97.5), funs(as.numeric)) %>%
   mutate(Parameter = recode_factor(Parameter,
                                    "Intercept" = "Intercept",
-                                   "por_score_std" = "Porosity Vignettes", 
+                                   "pv_score_std" = "Porosity Vignettes", 
                                    "abs_score_std" = "Absorption",
-                                   "por_score_std:abs_score_std" = "Porosity Vignettes × Absorption"))
+                                   "pv_score_std:abs_score_std" = "Porosity Vignettes × Absorption"))
 ```
 
 ```{r}
@@ -803,7 +803,7 @@ r1_bayes_comp_df %>%
 ## Country as fixed effect
 
 ```{r}
-rr2 <- lm(spirit_recoded_std ~ por_score_std * abs_score_std * country, d1r)
+rr2 <- lm(spev_recoded_std ~ pv_score_std * abs_score_std * country, d1r)
 summary(rr2)
 ```
 
@@ -812,8 +812,7 @@ piecewiseSEM::rsquared(rr2)
 ```
 
 ```{r}
-regtab_fun(rr2, por_name = "Porosity Vignettes") %>% 
+regtab_fun(rr2, por_var = "pv_score_std", por_name = "Porosity Vignettes") %>% 
   regtab_style_fun(row_emph = 2:3)
 ```
-
 

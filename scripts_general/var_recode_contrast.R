@@ -1,7 +1,7 @@
 # levels
 levels_country <- c("US", "Ghana", "Thailand", "China", "Vanuatu")
 levels_site <- c("urban", "rural")
-levels_religion <- c("charismatic", "indigenous")
+levels_religion <- c("charismatic", "local")
 levels_researcher <- c("JBrahinsky", "Jdulin", "VDzokoto",
                        "Faulino", "Emng", "Rsmith")
 
