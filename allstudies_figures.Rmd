@@ -75,7 +75,51 @@ d_all <- d1 %>%
 
 ## By study
 
-### Study 1
+### Study 4
+
+```{r}
+rsq_fun <- function(reg){
+  reg_class <- class(reg)
+  res <- rsquared(reg)
+  
+  if (grepl("lmerMod", reg_class)) {
+    rsq <- res$Conditional
+  } else {
+    rsq <- res$R.squared
+  }
+  return(rsq)
+}
+```
+
+```{r}
+d_sum_s4 <- d_all %>%
+  filter(study == "Study 4") %>%
+  group_by(country) %>%
+  summarise_at(vars(spev_score, dse_score, pv_score, por_score, abs_score),
+               funs(mean = mean(., na.rm = T), sd = sd(., na.rm = T))) %>%
+  ungroup()
+```
+
+```{r}
+d_rsq_s4 <- data.frame(
+  var = c("spev_score", "dse_score", "pv_score", "por_score", "abs_score"),
+  rsq_fix = c(rsq_fun(lm(spev_score ~ country, d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lm(dse_score ~ country, d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lm(pv_score ~ country, d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lm(por_score ~ country, d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lm(abs_score ~ country, d_all %>% filter(study == "Study 4")))),
+  rsq_ran = c(rsq_fun(lmer(spev_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lmer(dse_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lmer(pv_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lmer(por_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 4"))),
+              rsq_fun(lmer(abs_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 4")))))
+d_rsq_s4
+```
 
 ```{r}
 plot_s4_spev <- d_all %>%
@@ -90,6 +134,10 @@ plot_s4_spev <- d_all %>%
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
                   show.legend = F) +
+  geom_text(data = d_sum_s4 %>%
+              mutate_at(vars(-country), funs(format(round(., 2), nsmall = 2))),
+            aes(y = 1, label = paste0(spev_score_mean, "\n(", spev_score_sd, ")")),
+            color = "black", size = 2.5, vjust = 1) +
   scale_color_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2") +
   scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
@@ -109,6 +157,10 @@ plot_s4_dse <- d_all %>%
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
                   show.legend = F) +
+  geom_text(data = d_sum_s4 %>%
+              mutate_at(vars(-country), funs(format(round(., 2), nsmall = 2))),
+            aes(y = 1, label = paste0(dse_score_mean, "\n(", dse_score_sd, ")")),
+            color = "black", size = 2.5, vjust = 1) +
   scale_color_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2") +
   scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
@@ -128,6 +180,10 @@ plot_s4_pv <- d_all %>%
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
                   show.legend = F) +
+  geom_text(data = d_sum_s4 %>%
+              mutate_at(vars(-country), funs(format(round(., 2), nsmall = 2))),
+            aes(y = 1, label = paste0(pv_score_mean, "\n(", pv_score_sd, ")")),
+            color = "black", size = 2.5, vjust = 1) +
   scale_color_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2") +
   scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
@@ -147,13 +203,15 @@ plot_s4_por <- d_all %>%
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
                   show.legend = F) +
+  geom_text(data = d_sum_s4 %>%
+              mutate_at(vars(-country), funs(format(round(., 2), nsmall = 2))),
+            aes(y = 1, label = paste0(por_score_mean, "\n(", por_score_sd, ")")),
+            color = "black", size = 2.5, vjust = 1) +
   scale_color_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2") +
   scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
   labs(x = "Country", y = "Porosity Scale")
 ```
-
-## Spiritual Events scores
 
 ```{r}
 plot_s4_abs <- d_all %>%
@@ -168,17 +226,37 @@ plot_s4_abs <- d_all %>%
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
                   show.legend = F) +
+  geom_text(data = d_sum_s4 %>%
+              mutate_at(vars(-country), funs(format(round(., 2), nsmall = 2))),
+            aes(y = 1, label = paste0(abs_score_mean, "\n(", abs_score_sd, ")")),
+            color = "black", size = 2.5, vjust = 1) +
   scale_color_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2") +
   scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
   labs(x = "Country", y = "Absorption")
 ```
 
+```{r}
+fig_2_title <- ggdraw() + 
+  draw_label("STUDY 4", fontface = 'bold', x = 0, hjust = 0.5) +
+  theme(plot.margin = margin(0, 0, 0, 35))
+
+fig_2 <- plot_grid(
+  fig_2_title,
+  plot_grid(plot_s4_spev, plot_s4_dse, 
+            plot_s4_pv, plot_s4_por, 
+            plot_s4_abs, NULL, 
+            ncol = 2, labels = c("A", "B", "C", "D", "E")),
+  ncol = 1, rel_heights = c(1, 20))
+# fig_2
+```
+
 ```{r, fig.width = 3.5, fig.asp = 1.5}
-plot_grid(plot_s4_spev, plot_s4_dse, plot_s4_pv, plot_s4_por, plot_s4_abs, NULL, ncol = 2, labels = c("A", "B", "C", "D", "E"))
+fig_2
 ```
 
 
+## Spiritual Events scores
 
 ### Study 1
 
@@ -267,8 +345,6 @@ d4 %>%
 ```
 
 ### All studies
-
-
 
 ```{r, fig.width = 3, fig.asp = 0.8}
 d_all %>%
