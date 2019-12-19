@@ -25,10 +25,160 @@ setwd("./study1/analysis/")
 source("../../scripts_general/data_load.R")
 ```
 
+```{r}
+d_all <- d1 %>%
+  select(study, country, site, religion, subject_id, 
+         pv_score, abs_score, spev_score) %>%
+  mutate(religion = recode_factor(religion,
+                                  "indigenous" = "Indigenous Religion",
+                                  "charismatic" = "Charismatic Christianity"),
+         # rescale to 0-1
+         pv_score = pv_score/3) %>%
+  full_join(d2 %>% 
+              select(study, country, subj, 
+                     abs_score, spev_score, dse_score) %>% 
+              rename(subject_id = subj) %>%
+              # rescale to 0-1
+              mutate(spev_score = spev_score/4,
+                     dse_score = dse_score/5,
+                     religion = "General Population")) %>%
+  full_join(d3 %>% 
+              select(study, epi_ctry, epi_sample, epi_subj, 
+                     por_score, spirit_score) %>%
+              rename(country = epi_ctry, 
+                     religion = epi_sample,
+                     subject_id = epi_subj,
+                     spev_score = spirit_score) %>%
+              mutate(religion = recode_factor(religion,
+                                              "general population" = "General Population",
+                                              "charismatic" = "Charismatic Christianity"))) %>%
+  full_join(d4 %>%
+              select(study, p7_ctry, p7_subj, 
+                     por_score, pv_score, abs_score, spev_score, dse_score) %>%
+              rename(country = p7_ctry,
+                     subject_id = p7_subj) %>%
+              # rescale to 0-1
+              mutate(por_score = por_score/2,
+                     pv_score = pv_score/3,
+                     spev_score = spev_score/4,
+                     dse_score = dse_score/5,
+                     religion = "General Population")) %>%
+  mutate(religion = factor(religion, 
+                           levels = c("General Population", 
+                                      "Indigenous Religion",
+                                      "Charismatic Christianity")),
+         study = gsub("study", "Study", study)) 
+```
+
 
 # Summary statistics
 
+## By study
+
+### Study 1
+
+```{r}
+plot_s4_spev <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = country, y = spev_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Spiritual Events")
+```
+
+```{r}
+plot_s4_dse <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = country, y = dse_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(dse_score, na.rm = T),
+                              sd = sd(dse_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Daily Spiritual Experiences")
+```
+
+```{r}
+plot_s4_pv <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = country, y = pv_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(pv_score, na.rm = T),
+                              sd = sd(pv_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Porosity Vignettes")
+```
+
+```{r}
+plot_s4_por <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = country, y = por_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(por_score, na.rm = T),
+                              sd = sd(por_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Porosity Scale")
+```
+
 ## Spiritual Events scores
+
+```{r}
+plot_s4_abs <- d_all %>%
+  filter(study == "Study 4") %>%
+  ggplot(aes(x = country, y = abs_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country) %>%
+                    summarise(mean = mean(abs_score, na.rm = T),
+                              sd = sd(abs_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  shape = 23, color = "black",
+                  show.legend = F) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Absorption")
+```
+
+```{r, fig.width = 3.5, fig.asp = 1.5}
+plot_grid(plot_s4_spev, plot_s4_dse, plot_s4_pv, plot_s4_por, plot_s4_abs, NULL, ncol = 2, labels = c("A", "B", "C", "D", "E"))
+```
+
+
 
 ### Study 1
 
@@ -118,52 +268,7 @@ d4 %>%
 
 ### All studies
 
-```{r}
-d_all <- d1 %>%
-  select(study, country, site, religion, subject_id, 
-         por_score, abs_score, spirit_score) %>%
-  rename(spev_score = spirit_score,
-         pv_score = por_score) %>%
-  mutate(religion = recode_factor(religion,
-                                  "indigenous" = "Indigenous Religion",
-                                  "charismatic" = "Charismatic Christianity"),
-         # rescale to 0-1
-         pv_score = pv_score/3) %>%
-  full_join(d2 %>% 
-              select(study, country, subj, 
-                     abs_score, spev_score, dse_score) %>% 
-              rename(subject_id = subj) %>%
-              # rescale to 0-1
-              mutate(spev_score = spev_score/4,
-                     dse_score = dse_score/5,
-                     religion = "General Population")) %>%
-  full_join(d3 %>% 
-              select(study, epi_ctry, epi_sample, epi_subj, 
-                     por_score, spirit_score) %>%
-              rename(country = epi_ctry, 
-                     religion = epi_sample,
-                     subject_id = epi_subj,
-                     spev_score = spirit_score) %>%
-              mutate(religion = recode_factor(religion,
-                                              "general population" = "General Population",
-                                              "charismatic" = "Charismatic Christianity"))) %>%
-  full_join(d4 %>%
-              select(study, p7_ctry, p7_subj, 
-                     por_score, pv_score, abs_score, spev_score, dse_score) %>%
-              rename(country = p7_ctry,
-                     subject_id = p7_subj) %>%
-              # rescale to 0-1
-              mutate(por_score = por_score/2,
-                     pv_score = pv_score/3,
-                     spev_score = spev_score/4,
-                     dse_score = dse_score/5,
-                     religion = "General Population")) %>%
-  mutate(religion = factor(religion, 
-                           levels = c("General Population", 
-                                      "Indigenous Religion",
-                                      "Charismatic Christianity")),
-         study = gsub("study", "Study", study)) 
-```
+
 
 ```{r, fig.width = 3, fig.asp = 0.8}
 d_all %>%
