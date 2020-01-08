@@ -165,6 +165,28 @@ cor.test(d1$pv_score_std, d1$abs_score_std)
 
 # Predicting Spiritual Events
 
+## Means
+
+```{r}
+# r0 <- lmer(spev_score ~ 1 + (1 | country/religion/site), data = d1)
+r0 <- lm(spev_score ~ country * site * religion, data = d1)
+summary(r0)
+```
+
+```{r}
+regtab_fun(r0) %>% regtab_style_fun()
+```
+
+```{r}
+rsquared(r0)
+```
+
+```{r}
+beta_fun(r0) %>% beta_style_fun()
+```
+
+
+
 ## Primary analysis
 
 ```{r}

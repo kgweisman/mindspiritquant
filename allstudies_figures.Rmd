@@ -30,7 +30,7 @@ d_all <- d1 %>%
   select(study, country, site, religion, subject_id, 
          pv_score, abs_score, spev_score) %>%
   mutate(religion = recode_factor(religion,
-                                  "indigenous" = "Indigenous Religion",
+                                  "local" = "Local Religion",
                                   "charismatic" = "Charismatic Christianity"),
          # rescale to 0-1
          pv_score = pv_score/3) %>%
@@ -65,7 +65,7 @@ d_all <- d1 %>%
                      religion = "General Population")) %>%
   mutate(religion = factor(religion, 
                            levels = c("General Population", 
-                                      "Indigenous Religion",
+                                      "Local Religion",
                                       "Charismatic Christianity")),
          study = gsub("study", "Study", study)) 
 ```
@@ -74,6 +74,85 @@ d_all <- d1 %>%
 # Summary statistics
 
 ## By study
+
+### Study 4
+
+```{r}
+d_sum_s1 <- d_all %>%
+  filter(study == "Study 1") %>%
+  group_by(country, religion, site) %>%
+  summarise_at(vars(spev_score, pv_score, abs_score),
+               funs(mean = mean(., na.rm = T), sd = sd(., na.rm = T))) %>%
+  ungroup()
+```
+
+```{r}
+d_rsq_s1 <- data.frame(
+  var = c("spev_score", "pv_score", "abs_score"),
+  rsq_fix = c(rsq_fun(lm(spev_score ~ country, d_all %>% filter(study == "Study 1"))),
+              rsq_fun(lm(pv_score ~ country, d_all %>% filter(study == "Study 1"))),
+              rsq_fun(lm(abs_score ~ country, d_all %>% filter(study == "Study 1")))),
+  rsq_ran = c(rsq_fun(lmer(spev_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 1"))),
+              rsq_fun(lmer(pv_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 1"))),
+              rsq_fun(lmer(abs_score ~ 1 + (1 | country), 
+                         d_all %>% filter(study == "Study 1")))))
+d_rsq_s1
+```
+
+```{r}
+plot_s1_spev <- d_all %>% # XX BOOKMARK
+  filter(study == "Study 1") %>%
+  ggplot(aes(x = country, y = spev_score, 
+             color = country, fill = country, 
+             shape = site)) +
+  facet_grid(~ religion) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.25,
+                                             jitter.height = 0,
+                                             dodge.width = 0.5), 
+             alpha = 0.25, show.legend = F) +
+  geom_pointrange(data = . %>%
+                    group_by(country, religion, site) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd),
+                  position = position_dodge(width = 0.5),
+                  color = "black") +
+  geom_text(data = d_sum_s1 %>%
+              mutate_at(vars(-country, -religion, -site), 
+                        funs(format(round(., 2), nsmall = 2))),
+            aes(y = 1, label = paste0(spev_score_mean, "\n(", spev_score_sd, ")")),
+                  position = position_dodge(width = 0.75),
+            color = "black", size = 2.5, vjust = 1) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_shape_manual(values = 21:24) +
+  scale_y_continuous(limits = c(NA, 1), breaks = seq(0, 1, 0.25)) +
+  theme(legend.position = "bottom") +
+  guides(color = F, fill = F, 
+         shape = guide_legend(override.aes = list(fill = "black"))) +
+  labs(x = "Country", y = "Spiritual Events", shape = "Site")
+```
+
+```{r}
+fig_0_title <- ggdraw() + 
+  draw_label("STUDY 1", fontface = 'bold', x = 0, hjust = 0.5) +
+  theme(plot.margin = margin(0, 0, 0, 35))
+
+fig_0 <- plot_grid(
+  fig_0_title,
+  plot_grid(plot_s1_spev, 
+            ncol = 1),
+  ncol = 1, rel_heights = c(1, 20))
+# fig_0
+```
+
+```{r, fig.width = 4.5, fig.asp = 0.5}
+fig_0
+```
+
 
 ### Study 4
 
@@ -262,12 +341,12 @@ fig_2
 
 ```{r}
 d1 %>%
-  ggplot(aes(x = country, y = spirit_score, color = country, fill = country)) +
+  ggplot(aes(x = country, y = spev_score, color = country, fill = country)) +
   geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
   geom_pointrange(data = . %>%
                     group_by(country) %>%
-                    summarise(mean = mean(spirit_score, na.rm = T),
-                              sd = sd(spirit_score, na.rm = T)) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
                     ungroup(),
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
@@ -275,6 +354,30 @@ d1 %>%
   scale_color_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2") +
   scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  labs(x = "Country", y = "Study 1: Spiritual Events score (range: 0-1)",
+       caption = "Error bars are ±1 standard deviation from the mean")
+```
+
+```{r}
+d_all %>%
+  filter(study == "Study 1") %>%
+  ggplot(aes(x = country, y = spev_score, color = country, fill = country)) +
+  geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
+  geom_pointrange(data = . %>%
+                    group_by(country, religion) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
+                    ungroup(),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd,
+                      shape = religion),
+                  color = "black",
+                  show.legend = T) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_shape_manual(values = 21:24) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  guides(color = F, fill = F, 
+         shape = guide_legend(override.aes = list(fill = "black"))) +
   labs(x = "Country", y = "Study 1: Spiritual Events score (range: 0-1)",
        caption = "Error bars are ±1 standard deviation from the mean")
 ```
@@ -305,13 +408,13 @@ d2 %>%
 ```{r}
 d3 %>%
   # correct for scaling in original dataset
-  mutate(spirit_score = spirit_score * 4) %>%
-  ggplot(aes(x = epi_ctry, y = spirit_score, color = epi_ctry, fill = epi_ctry)) +
+  mutate(spev_score = spirit_score * 4) %>%
+  ggplot(aes(x = epi_ctry, y = spev_score, color = epi_ctry, fill = epi_ctry)) +
   geom_jitter(height = 0, width = 0.25, alpha = 0.2, show.legend = F ) +
   geom_pointrange(data = . %>%
                     group_by(epi_ctry) %>%
-                    summarise(mean = mean(spirit_score, na.rm = T),
-                              sd = sd(spirit_score, na.rm = T)) %>%
+                    summarise(mean = mean(spev_score, na.rm = T),
+                              sd = sd(spev_score, na.rm = T)) %>%
                     ungroup(),
                   aes(y = mean, ymin = mean - sd, ymax = mean + sd),
                   shape = 23, color = "black",
@@ -413,6 +516,42 @@ d_all %>%
          shape = guide_legend(override.aes = list(fill = "black"))) +
   theme(legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(x = "Country", y = "Spiritual Events score (rescaled to 0-1)",
+       # caption = "Error bars are ±1 standard deviation from the mean",
+       shape = "Religion")
+```
+
+```{r, fig.width = 3, fig.asp = 1}
+d_all %>%
+  filter(study == "Study 1") %>%
+  ggplot(aes(x = country, y = spev_score, 
+             color = country, fill = country,
+             group = religion)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.8,
+                                             jitter.height = 0.02,
+                                             dodge.width = 0.75), 
+             alpha = 0.15) +
+  geom_pointrange(data = d_spev_sum %>%
+                    filter(study == "Study 1"),
+                  aes(y = mean, ymin = mean - sd, ymax = mean + sd, 
+                      shape = religion), 
+                  position = position_dodge(width = 0.75),
+                  fill = "black",
+                  color = "black") +
+  geom_text(data = d_spev_sum %>%
+              filter(study == "Study 1") %>%
+              mutate(ypos = case_when(
+                grepl("charismatic", tolower(religion)) ~ mean + sd + 0.05,
+                TRUE ~ mean - sd - 0.05)),
+            aes(y = ypos, label = paste0("n=", n)), 
+            position = position_dodge(width = 0.75),
+            size = 3, color = "black") +
+  scale_shape_manual(values = 21:24) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  guides(color = F, fill = F, 
+         shape = guide_legend(override.aes = list(fill = "black"))) +
+  theme(legend.position = "bottom") +
   labs(x = "Country", y = "Spiritual Events score (rescaled to 0-1)",
        # caption = "Error bars are ±1 standard deviation from the mean",
        shape = "Religion")
@@ -523,8 +662,8 @@ d_all %>%
 ```
 
 ```{r}
-r1_spev <- lm(spirit_score_std ~ country, d1)
-r1_pv <- lm(por_score_std ~ country, d1)
+r1_spev <- lm(spev_score_std ~ country, d1)
+r1_pv <- lm(pv_score_std ~ country, d1)
 r1_abs <- lm(abs_score_std ~ country, d1)
 
 r2_spev <- lm(spev_score_std ~ country, d2)
@@ -593,8 +732,8 @@ df_all %>%
 ```
 
 ```{r}
-r1_spev_pv <- lm(spirit_score_std ~ por_score_std, d1)
-r1_spev_abs <- lm(spirit_score_std ~ abs_score_std, d1)
+r1_spev_pv <- lm(spev_score_std ~ pv_score_std, d1)
+r1_spev_abs <- lm(spev_score_std ~ abs_score_std, d1)
 
 r2_spev_abs <- lm(spev_score_std ~ abs_score_std, d2)
 r2_dse_abs <- lm(dse_score_std ~ abs_score_std, d2)
@@ -1064,7 +1203,7 @@ fig_all_vert
 
 ```{r, fig.width = 4, fig.asp = 0.7}
 d_all %>%
-  gather(spirit_scale, spirit_score, c(spev_score, dse_score)) %>%
+  gather(spirit_scale, spev_score, c(spev_score, dse_score)) %>%
   gather(pred_scale, pred_score, c(por_score, pv_score, abs_score)) %>%
   mutate(spirit_scale = recode_factor(spirit_scale,
                                       "spev_score" = "Spiritual Events",
@@ -1092,12 +1231,12 @@ d_all %>%
                                           "Porosity Scale", " "))) %>%
   filter(!is.na(pred_score),
          spirit_scale == "Spiritual Events") %>%
-  ggplot(aes(x = pred_score, y = spirit_score)) +
+  ggplot(aes(x = pred_score, y = spev_score)) +
   facet_grid(rows = vars(pred_type), cols = vars(study, study_scale3)) +
   # facet_grid(pred_type ~ study_scale3) +
   geom_point(data = . %>% distinct(study, study_scale3, country, 
                                    pred_type, pred_scale, pred_score,
-                                   spirit_scale, spirit_score),
+                                   spirit_scale, spev_score),
              aes(color = country), alpha = 0.1) +
   geom_smooth(aes(color = country), method = "lm", 
               lty = 2, size = 0.7, alpha = 0, show.legend = F) +
@@ -1259,7 +1398,7 @@ d_all %>%
 
 ```{r, fig.width = 4, fig.asp = 0.7}
 d_all %>%
-  gather(spirit_scale, spirit_score, c(spev_score, dse_score)) %>%
+  gather(spirit_scale, spev_score, c(spev_score, dse_score)) %>%
   gather(poros_scale, poros_score, c(por_score, pv_score)) %>%
   mutate(spirit_scale = recode_factor(spirit_scale,
                                       "spev_score" = "Spiritual Events",
@@ -1269,11 +1408,11 @@ d_all %>%
                                      "por_score" = "Porosity Scale"),
          study_scale = paste(study, poros_scale, sep = ": ")) %>%
   filter(!is.na(poros_score)) %>%
-  ggplot(aes(x = poros_score, y = spirit_score)) +
+  ggplot(aes(x = poros_score, y = spev_score)) +
   facet_grid(spirit_scale ~ study_scale) +
   geom_point(data = . %>% distinct(study, study_scale, country, 
                                    poros_scale, poros_score,
-                                   spirit_scale, spirit_score),
+                                   spirit_scale, spev_score),
              aes(color = country), alpha = 0.1) +
   geom_smooth(aes(color = country), method = "lm", 
               lty = 2, size = 0.7, alpha = 0, show.legend = F) +
@@ -1290,17 +1429,17 @@ d_all %>%
 
 ```{r, fig.width = 3, fig.asp = 0.9}
 d_all %>%
-  gather(spirit_scale, spirit_score, c(spev_score, dse_score)) %>%
+  gather(spirit_scale, spev_score, c(spev_score, dse_score)) %>%
   mutate(spirit_scale = recode_factor(spirit_scale,
                                       "spev_score" = "Spiritual Events",
                                       "dse_score" = "Daily Spiritual Experiences"),
          study_scale = paste(study, "Absorption scale", sep = ": ")) %>%
   filter(!is.na(abs_score)) %>%
-  ggplot(aes(x = abs_score, y = spirit_score)) +
+  ggplot(aes(x = abs_score, y = spev_score)) +
   facet_grid(spirit_scale ~ study_scale) +
   geom_point(data = . %>% distinct(study, study_scale, country, 
                                    abs_score,
-                                   spirit_scale, spirit_score),
+                                   spirit_scale, spev_score),
              aes(color = country), alpha = 0.2) +
   geom_smooth(aes(color = country), method = "lm", 
               lty = 2, size = 0.7, alpha = 0, show.legend = F) +

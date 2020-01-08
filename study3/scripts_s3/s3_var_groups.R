@@ -11,7 +11,8 @@ s3_var_por <- c("epi_1_01", "epi_1_02", "epi_1_03", "epi_1_04", "epi_1_05",
 # spiritual events
 s3_var_spex <- c("epi_2_02", "epi_2_03", "epi_2_04", "epi_2_05",
                  "epi_2_06", "epi_2_07", "epi_2_08", "epi_2_09", "epi_2_10",
-                 "epi_2_16", "epi_2_17", "epi_2_18", "epi_2_19", "epi_2_21")
+                 "epi_2_16", "epi_2_17", "epi_2_18", "epi_2_19", "epi_2_20", 
+                 "epi_2_21")
 
 s3_var_being_us <- c("epi_2_usa11", "epi_2_usa12", "epi_2_usa13", 
                      "epi_2_usa14", "epi_2_usa15") 
@@ -32,5 +33,5 @@ s3_var_being <- c(s3_var_being_us, s3_var_being_gh, s3_var_being_th,
 s3_var_spirit <- c(s3_var_spex, s3_var_being)
 
 # other extraordinary events
-s3_var_other <- c("epi_2_20", "epi_2_22", "epi_2_23")
+s3_var_other <- c("epi_2_22", "epi_2_23")
 

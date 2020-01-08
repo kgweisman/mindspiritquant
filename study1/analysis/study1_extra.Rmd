@@ -45,12 +45,12 @@ contrasts(d1r$religion) <- contrasts_religion
 d1r %>% 
   select(country, subject_id, ends_with("recoded"), ends_with("score")) %>%
   gather(scale, score, -c(country, subject_id)) %>%
-  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  filter(grepl("spev", scale) | grepl("other", scale)) %>%
   mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
                                 grepl("score", scale) ~ "original",
                                 TRUE ~ NA_character_),
          score_type = factor(score_type, levels = c("original", "recoded")),
-         scale = case_when(grepl("spirit", scale) ~ "spiritual experiences",
+         scale = case_when(grepl("spev", scale) ~ "spiritual experiences",
                            grepl("other", scale) ~ "other extraordinary experiences",
                            TRUE ~ NA_character_),
          scale = factor(scale, levels = c("spiritual experiences", 
@@ -72,21 +72,26 @@ d1r %>%
 ```
 
 ```{r}
-lmer(score ~ score_type * scale + (1 | subject_id), 
-   data = d1r %>% 
+d1r_long <- d1r %>% 
      select(country, subject_id, ends_with("recoded"), ends_with("score")) %>%
      gather(scale, score, -c(country, subject_id)) %>%
-     filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+     filter(grepl("spev", scale) | grepl("other", scale)) %>%
      mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
                                    grepl("score", scale) ~ "original",
                                    TRUE ~ NA_character_),
             score_type = factor(score_type, levels = c("original", "recoded")),
-            scale = case_when(grepl("spirit", scale) ~ "spiritual experiences",
+            scale = case_when(grepl("spev", scale) ~ "spiritual experiences",
                               grepl("other", scale) ~ "other extraordinary experiences",
                               TRUE ~ NA_character_),
             scale = factor(scale, levels = c("spiritual experiences", 
-                                             "other extraordinary experiences"))),
-   contrasts = list(score_type = "contr.sum", scale = "contr.sum")) %>%
+                                             "other extraordinary experiences")))
+
+contrasts(d1r_long$scale) <- contr.sum(2)
+contrasts(d1r_long$score_type) <- contr.sum(2)
+```
+
+```{r}
+lmer(score ~ score_type * scale + (1 | subject_id), data = d1r_long) %>%
   summary()
 ```
 
@@ -94,12 +99,12 @@ lmer(score ~ score_type * scale + (1 | subject_id),
 d1r %>% 
   select(country, subject_id, ends_with("recoded"), ends_with("score")) %>%
   gather(scale, score, -c(country, subject_id)) %>%
-  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  filter(grepl("spev", scale) | grepl("other", scale)) %>%
   mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
                                 grepl("score", scale) ~ "original",
                                 TRUE ~ NA_character_),
          score_type = factor(score_type, levels = c("original", "recoded")),
-         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+         scale = case_when(grepl("spev", scale) ~ "spiritual exp.",
                            grepl("other", scale) ~ "other exp.",
                            TRUE ~ NA_character_),
          scale = factor(scale, levels = c("spiritual exp.", 
@@ -127,12 +132,12 @@ d1r %>%
   select(country, site, religion, subject_id, 
          ends_with("recoded"), ends_with("score")) %>%
   gather(scale, score, -c(country, site, religion, subject_id)) %>%
-  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  filter(grepl("spev", scale) | grepl("other", scale)) %>%
   mutate(score_type = case_when(grepl("recoded", scale) ~ "recoded",
                                 grepl("score", scale) ~ "original",
                                 TRUE ~ NA_character_),
          score_type = factor(score_type, levels = c("original", "recoded")),
-         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+         scale = case_when(grepl("spev", scale) ~ "spiritual exp.",
                            grepl("other", scale) ~ "other exp.",
                            TRUE ~ NA_character_),
          scale = factor(scale, levels = c("spiritual exp.", 
@@ -163,12 +168,12 @@ d1r %>%
                                 grepl("score", scale) ~ "original",
                                 TRUE ~ NA_character_),
          score_type = factor(score_type, levels = c("original", "recoded")),
-         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+         scale = case_when(grepl("spev", scale) ~ "spiritual exp.",
                            grepl("other", scale) ~ "other exp.",
                            TRUE ~ NA_character_),
          scale = factor(scale, levels = c("spiritual exp.", 
                                           "other exp."))) %>%
-  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  filter(grepl("spev", scale) | grepl("other", scale)) %>%
   ggplot(aes(x = scale, y = score, group = coder)) +
   facet_grid(~ country) +
   geom_point(aes(color = coder), alpha = 0.2,
@@ -192,8 +197,8 @@ lmer(score ~ scale * coder + (1 | subject_id),
      select(country, coder, subject_id, ends_with("recoded")) %>%
      distinct() %>%
      gather(scale, score, -c(country, subject_id, coder)) %>%
-     filter(grepl("spirit", scale) | grepl("other", scale)) %>%
-     mutate(scale = case_when(grepl("spirit", scale) ~ "spiritual experiences",
+     filter(grepl("spev", scale) | grepl("other", scale)) %>%
+     mutate(scale = case_when(grepl("spev", scale) ~ "spiritual experiences",
                               grepl("other", scale) ~ "other extraordinary experiences",
                               TRUE ~ NA_character_),
             scale = factor(scale, levels = c("spiritual experiences", 
@@ -213,12 +218,12 @@ d1r %>%
                                 grepl("score", scale) ~ "original",
                                 TRUE ~ NA_character_),
          score_type = factor(score_type, levels = c("original", "recoded")),
-         scale = case_when(grepl("spirit", scale) ~ "spiritual exp.",
+         scale = case_when(grepl("spev", scale) ~ "spiritual exp.",
                            grepl("other", scale) ~ "other exp.",
                            TRUE ~ NA_character_),
          scale = factor(scale, levels = c("spiritual exp.", 
                                           "other exp."))) %>%
-  filter(grepl("spirit", scale) | grepl("other", scale)) %>%
+  filter(grepl("spev", scale) | grepl("other", scale)) %>%
   ggplot(aes(x = scale, y = score, group = coder)) +
   facet_grid(rows = vars(site, religion), cols = vars(country)) +
   geom_point(aes(color = coder), alpha = 0.2,
@@ -246,14 +251,14 @@ d1r %>%
 ```{r, fig.width = 6, fig.asp = 0.4}
 d1r_byquestion %>% 
   select(country, site, religion, subject_id, 
-         !!s1_var_spirit, !!s1_var_other) %>%
+         !!s1_var_spev, !!s1_var_other) %>%
   gather(question, recoded, -c(country, site, religion, subject_id)) %>%
   full_join(d1_byquestion %>%
               select(country, site, religion, subject_id, 
-                     !!s1_var_spirit, !!s1_var_other) %>%
+                     !!s1_var_spev, !!s1_var_other) %>%
               gather(question, original, -c(country, site, religion, subject_id))) %>%
   gather(response_type, response, c(original, recoded)) %>%
-  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+  mutate(question = factor(question, levels = c(s1_var_spev, s1_var_other)),
          response_type = factor(response_type, levels = c("original", "recoded"))) %>%
   ggplot(aes(x = question, y = response, group = response_type)) +
   geom_pointrange(data = . %>%
@@ -273,14 +278,14 @@ d1r_byquestion %>%
 ```{r}
 d1r_byquestion %>% 
   select(country, site, religion, subject_id, 
-         !!s1_var_spirit, !!s1_var_other) %>%
+         !!s1_var_spev, !!s1_var_other) %>%
   gather(question, recoded, -c(country, site, religion, subject_id)) %>%
   full_join(d1_byquestion %>%
               select(country, site, religion, subject_id, 
-                     !!s1_var_spirit, !!s1_var_other) %>%
+                     !!s1_var_spev, !!s1_var_other) %>%
               gather(question, original, -c(country, site, religion, subject_id))) %>%
   gather(response_type, response, c(original, recoded)) %>%
-  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+  mutate(question = factor(question, levels = c(s1_var_spev, s1_var_other)),
          response_type = factor(response_type, levels = c("original", "recoded"))) %>%
   filter(question == "seehearnotgod") %>%
   count(response_type, response) %>%
@@ -290,218 +295,17 @@ d1r_byquestion %>%
 ```{r}
 d1r_byquestion %>% 
   select(country, site, religion, subject_id, 
-         !!s1_var_spirit, !!s1_var_other) %>%
+         !!s1_var_spev, !!s1_var_other) %>%
   gather(question, recoded, -c(country, site, religion, subject_id)) %>%
   full_join(d1_byquestion %>%
               select(country, site, religion, subject_id, 
-                     !!s1_var_spirit, !!s1_var_other) %>%
+                     !!s1_var_spev, !!s1_var_other) %>%
               gather(question, original, -c(country, site, religion, subject_id))) %>%
-  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other))) %>%
+  mutate(question = factor(question, levels = c(s1_var_spev, s1_var_other))) %>%
   filter(question == "seehearnotgod") %>%
   mutate(match = (original == recoded)) %>%
   count(match) %>%
   mutate(prop = n/sum(n))
-```
-
-
-
-
-# Comparing first question to interviewer judgments when available
-
-```{r}
-d1_check_questions <- c("godvoxaloud", "godviavisions", "godviatouch", 
-                        "godviasmell", "neartangiblegod", "presencenotgod", 
-                        "presencedemon", "beingentbody", "seehearnotgod", 
-                        "whitelight", "spiritbeingencounter", "voxwhenalone", 
-                        "seethingscornereye")
-```
-
-```{r}
-d1_check <- d1_byquestion %>% 
-  select(country, subject_id, ends_with("_judge")) %>%
-  gather(question, judgment, -c(country, subject_id)) %>%
-  mutate(question = gsub("_judge", "", question)) %>%
-  full_join(d1_byquestion %>% 
-              select(country, subject_id, !!d1_check_questions) %>%
-              gather(question, response, -c(country, subject_id)))
-
-```
-
-```{r}
-d1_check %>%
-  filter(question %in% d1_check_questions) %>%
-  mutate(agree = (judgment == response),
-         agree = ifelse(is.na(agree), 0, agree)) %>%
-  group_by(question) %>%
-  summarise(percent_agree = mean(agree, na.rm = T)) %>%
-  arrange(percent_agree)
-```
-
-```{r}
-s1_check_icc_df <- data.frame(question = character(), icc = numeric())
-for(i in d1_check_questions){
-  temp_icc <- icc_fun(d1_check, var_name = i, 
-                      var1 = "judgment", var2 = "response")
-  temp_res <- data.frame(question = i, icc = temp_icc)
-  s1_check_icc_df <- full_join(s1_check_icc_df, temp_res)
-  rm(temp_res, i)
-}
-
-s1_check_icc_df <- s1_check_icc_df %>%
-  mutate(question = factor(question, levels = d1_check_questions),
-         reliability = case_when(icc < 0.5 ~ "poor",
-                                 icc < 0.75 ~ "moderate",
-                                 icc < 0.9 ~ "good", 
-                                 icc <= 1 ~ "excellent",
-                                 TRUE ~ NA_character_),
-         reliability = factor(reliability, 
-                              levels = c("poor", "moderate", 
-                                         "good", "excellent")),
-         scale = case_when(question %in% s1_var_spirit ~ "spiritual experiences",
-                           question %in% s1_var_other ~ "other experiences",
-                           TRUE ~ NA_character_),
-         scale = factor(scale, 
-                        levels = c("spiritual experiences", "other experiences")))
-```
-
-```{r}
-s1_check_icc_df %>% arrange(icc)
-s1_check_icc_df %>% 
-  mutate(scale = recode_factor(scale,
-                               "spiritual experiences" = "spiritual",
-                               "other experiences" = "other")) %>%
-  ggplot(aes(x = question, y = icc, color = reliability)) + 
-  facet_grid(~ scale, scales = "free", space = "free") +
-  geom_point() +
-  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
-  scale_color_brewer(palette = "RdYlGn", direction = 1, drop = F) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1,
-                                   color = ifelse(s1_check_icc_df$reliability == "poor",
-                                                  "#d7191c", "black"))) +
-  labs(title = "Comparing initial responses vs. later 'judgments'",
-       x = "Question", y = "Intraclass correlation coefficient (ICC)")
-```
-
-
-# Percent with particular experiences
-
-```{r}
-d1_byquestion %>% 
-  count(godvoxaloud) %>% 
-  mutate(godvoxaloud = recode_factor(godvoxaloud, 
-                                     "0" = "no", "0.5" = "maybe", "1" = "yes"),
-         proportion = round(n/sum(n), 2))
-```
-
-```{r}
-d1_byquestion %>% 
-  filter(!is.na(godvoxaloud)) %>%
-  count(country, godvoxaloud) %>% 
-  mutate(godvoxaloud = recode_factor(godvoxaloud, 
-                                     "0" = "no", "0.5" = "maybe", "1" = "yes")) %>%
-  complete(country, nesting(godvoxaloud), fill = list(n = 0)) %>%
-  spread(godvoxaloud, n) %>%
-  mutate(total = no + maybe + yes) %>%
-  janitor::adorn_totals() %>%
-  mutate_at(vars(no, maybe, yes), funs(round(./total, 2)*100)) %>%
-  select(-total) %>%
-  data.frame() %>%
-  mutate_at(vars(no, maybe, yes), funs(paste0(., "%"))) %>%
-  kable() %>%
-  kable_styling() %>%
-  row_spec(6, bold = T)
-```
-
-```{r}
-d1_byquestion %>% 
-  filter(!is.na(godviavisions)) %>%
-  count(country, godviavisions) %>% 
-  mutate(godviavisions = recode_factor(godviavisions, 
-                                       "0" = "no", "0.5" = "maybe", "1" = "yes")) %>%
-  complete(country, nesting(godviavisions), fill = list(n = 0)) %>%
-  spread(godviavisions, n) %>%
-  mutate(total = no + maybe + yes) %>%
-  janitor::adorn_totals() %>%
-  mutate_at(vars(no, maybe, yes), funs(round(./total, 2)*100)) %>%
-  select(-total) %>%
-  data.frame() %>%
-  mutate_at(vars(no, maybe, yes), funs(paste0(., "%"))) %>%
-  kable() %>%
-  kable_styling() %>%
-  row_spec(6, bold = T)
-```
-
-
-# TML's additional analyses
-
-## Focus on `godvoxaloud` and `godviavisions`
-
-```{r}
-d1_tml1 <- d1 %>% select(country, subject_id, abs_score, por_score) %>%
-  full_join(d1_byquestion %>% 
-              select(country, subject_id, godvoxaloud, godviavisions) %>%
-              gather(question, response, -c(country, subject_id)) %>%
-              mutate(response_yn = case_when(response < 1 ~ 0,
-                                             response == 1 ~ 1,
-                                             TRUE ~ NA_real_)))
-```
-
-```{r}
-glmer(response_yn ~ scale(por_score) + (1 | question) + (1 | country), 
-      family = "binomial", d1_tml1) %>% summary()
-```
-
-```{r}
-glmer(response_yn ~ scale(abs_score) + (1 | question) + (1 | country), 
-      family = "binomial", d1_tml1) %>% summary()
-```
-
-```{r}
-glmer(response_yn ~ scale(por_score) + (1 | country), 
-      family = "binomial", d1_tml1 %>% filter(question == "godvoxaloud")) %>% 
-  summary()
-```
-
-```{r}
-glmer(response_yn ~ scale(abs_score) + (1 | country), 
-      family = "binomial", d1_tml1 %>% filter(question == "godvoxaloud")) %>% 
-  summary()
-```
-
-```{r}
-glmer(response_yn ~ scale(por_score) + (1 | country), 
-      family = "binomial", d1_tml1 %>% filter(question == "godviavisions")) %>% 
-  summary()
-```
-
-```{r}
-glmer(response_yn ~ scale(abs_score) + (1 | country), 
-      family = "binomial", d1_tml1 %>% filter(question == "godviavisions")) %>% 
-  summary()
-```
-
-## Focus on other presence questions
-
-```{r}
-d1_tml2 <- d1 %>% select(country, subject_id, abs_score, por_score) %>%
-  full_join(d1_byquestion %>% 
-              select(country, subject_id, neartangiblegod, presencenotgod, 
-                     presencedemon, beingentbody, seehearnotgod, 
-                     spiritbeingencounter) %>%
-              gather(question, response, -c(country, subject_id)) %>%
-              mutate(response_yn = case_when(response < 1 ~ 0,
-                                             response == 1 ~ 1,
-                                             TRUE ~ NA_real_)))
-```
-
-```{r}
-glmer(response_yn ~ scale(por_score) + (1 | question) + (1 | country), 
-      family = "binomial", d1_tml2) %>% summary()
-```
-
-```{r}
-glmer(response_yn ~ scale(abs_score) + (1 | question) + (1 | country), 
-      family = "binomial", d1_tml2) %>% summary()
 ```
 
 
@@ -511,11 +315,11 @@ glmer(response_yn ~ scale(abs_score) + (1 | question) + (1 | country),
 
 ```{r}
 d1_variance <- d1 %>% 
-  select(country, site, religion, subject_id, abs_score, por_score) %>%
+  select(country, site, religion, subject_id, abs_score, pv_score) %>%
   gather(var, score, ends_with("_score")) %>%
   filter(!is.na(score)) %>%
   mutate(score_rescaled = case_when(var == "abs_score" ~ score/1,
-                                    var == "por_score" ~ score/3)) # called pv_score in study 4
+                                    var == "pv_score" ~ score/3)) # called pv_score in study 4
 ```
 
 ```{r}
@@ -575,7 +379,7 @@ d1_variance %>%
   ungroup() %>%
   spread(var, variance) %>%
   rename(Country = country, Absorption = abs_score, 
-         `Porosity Vignettes` = por_score) %>%
+         `Porosity Vignettes` = pv_score) %>%
   kable(digits = 2) %>%
   kable_styling()
 ```
@@ -586,7 +390,7 @@ d1_variance %>%
   mutate(score_cent = scale(score_rescaled, scale = F)) %>%
   ungroup() %>%
   mutate(var = recode_factor(var,
-                             "por_score" = "Porosity Vignettes",
+                             "pv_score" = "Porosity Vignettes",
                              "abs_score" = "Absorption")) %>%
   ggplot(aes(x = score_cent, fill = var, color = var, lty = var)) +
   facet_wrap(country ~ ., ncol = 3) +
@@ -605,7 +409,7 @@ d1_variance %>%
   mutate(score_cent = scale(score_rescaled, scale = F)) %>%
   ungroup() %>%
   mutate(var = recode_factor(var,
-                             "por_score" = "Porosity Vignettes",
+                             "pv_score" = "Porosity Vignettes",
                              "abs_score" = "Absorption")) %>%
   ggplot(aes(x = score_cent, fill = var, color = var, lty = var)) +
   facet_grid(cols = vars(country), rows = vars(site, religion)) +
@@ -621,7 +425,7 @@ d1_variance %>%
 ## Variance accounted for by country
 
 ```{r}
-r7 <- lm(por_score_std ~ country, d1)
+r7 <- lm(pv_score_std ~ country, d1)
 regtab_fun(r7, country_var1 = "country_gh", country_var2 = "country_th", country_var3 = "country_ch", country_var4 = "country_vt")
 rsquared(r7)
 ```
@@ -635,7 +439,7 @@ rsquared(r9)
 # Country, site, and religion as fixed effects
 
 ```{r}
-r10 <- lm(spirit_score_std ~ por_score_std * abs_score_std * 
+r10 <- lm(spev_score_std ~ pv_score_std * abs_score_std * 
             country * site * religion, d1)
 # summary(r10)
 ```
@@ -645,7 +449,7 @@ regtab_fun(r10) %>% regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-r11 <- lm(spirit_score_std ~ por_score_std * abs_score_std * country * religion, d1)
+r11 <- lm(spev_score_std ~ pv_score_std * abs_score_std * country * religion, d1)
 # summary(r11)
 ```
 
@@ -654,7 +458,7 @@ regtab_fun(r11) %>% regtab_style_fun(row_emph = 2:3)
 ```
 
 ```{r}
-r12 <- lm(spirit_score_std ~ por_score_std * abs_score_std * country * site, d1)
+r12 <- lm(spev_score_std ~ pv_score_std * abs_score_std * country * site, d1)
 # summary(r12)
 ```
 
@@ -666,7 +470,7 @@ regtab_fun(r12) %>% regtab_style_fun(row_emph = 2:3)
 # Predicting Other Extraordinary Events
 
 ```{r}
-r3 <- lmer(other_score_std ~ por_score_std * abs_score_std +
+r3 <- lmer(other_score_std ~ pv_score_std * abs_score_std +
              (1 | country/site/religion),
              # (1 | country/religion),
            data = d1)
@@ -689,7 +493,7 @@ regtab_ran_fun(r3) %>% regtab_style_fun()
 ## Recoding
 
 ```{r}
-rr3 <- lmer(other_recoded_std ~ por_score_std * abs_score_std +
+rr3 <- lmer(other_recoded_std ~ pv_score_std * abs_score_std +
               (1 | country/site/religion),
             # (1 | country/religion),
             data = d1r)

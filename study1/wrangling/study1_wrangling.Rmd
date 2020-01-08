@@ -7,7 +7,7 @@ output:
     toc_float: true
 ---
 
-In this notebook, we take our raw dataset from Study 1, anonymize it, score it, and create a sharable dataset.
+In this notebook, we take our raw dataset from Study 1, anonymize it, score it, and create a sharable dataset limited to relevant variables.
 
 ```{r}
 library(naniar)
@@ -17,6 +17,9 @@ library(naniar)
 ```{r}
 source("../../scripts_general/dependencies.R")
 source("../../scripts_general/custom_funs.R")
+source("../scripts_s1/s1_var_groups.R")
+source("../scripts_s1/s1_dataentry.R")
+source("../../scripts_general/var_recode_contrast.R")
 ```
 
 # Original dataset
@@ -28,8 +31,6 @@ d1_raw <- read_csv("../data/raw data/SC_TAT_SPSS_10.8.19 (updated wUS abs score)
 
 ```{r}
 # fix data entry errors and extra participants by hand
-source("../scripts_s1/s1_dataentry.R")
-
 d1_0 <- d1_raw %>%
   filter(
     # exclude 1 non-Christian from US charismatic sample
@@ -46,8 +47,6 @@ d1_0 <- d1_raw %>%
 
 ```{r}
 # clean up variables
-source("../../scripts_general/var_recode_contrast.R")
-
 d1_1 <- d1_0 %>%
   # standardize missing value notation
   replace_with_na_all(condition = ~.x %in% c("NA", "Na", "NaN", "\\.")) %>%
@@ -69,7 +68,11 @@ d1_1 <- d1_0 %>%
          religion = factor(religion, levels = levels_religion),
          subject_gender = case_when(grepl("Female", subject_gender) ~ "Female",
                                     grepl("Male", subject_gender) ~ "Male",
-                                    TRUE ~ subject_gender))
+                                    TRUE ~ subject_gender)) %>%
+  # limit to relevant variables
+  select(date, researcher, country, site, religion, subject_name,
+         starts_with("subject_"), servicesperweek, specialrole,
+         s1_var_pv, s1_var_abs, abs_score, s1_var_spev, s1_var_other)
 ```
 
 ```{r}
@@ -83,14 +86,13 @@ d1_2 <- d1_1[sample(nrow(d1_1)), ] %>%
 ```
 
 ```{r}
-# limit to relevant variables & score scales
-source("../scripts_s1/s1_var_groups.R")
+# score scales
 d1_3 <- d1_2 %>%
   # remove subject names
   select(-rand, -subject_name) %>%
   select(s1_var_demo) %>%
   # score porosity vignettes
-  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_por)) %>%
+  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_pv)) %>%
               rename(pv_score = score)) %>%
   # score absorption
   full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_abs)) %>%
@@ -110,7 +112,7 @@ d1_3 <- d1_2 %>%
     TRUE ~ abs_score_calc)) %>%
   select(-abs_score_calc, -abs_score_rec) %>%
   # score spiritual experiences
-  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_spirit)) %>%
+  full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_spev)) %>%
               rename(spev_score = score)) %>%
   # score other extraordinary experiences
   full_join(score_fun(d1_2 %>% select(country, subject_id, s1_var_other)) %>%
@@ -138,8 +140,21 @@ d1_4 <- d1_3 %>%
 
 ```{r}
 # export csvs
-write_csv(d1_2 %>% select(-rand, -subject_name), "../data/study1_byquestion.csv")
-write_csv(d1_4, "../data/study1.csv")
+write_csv(d1_2 %>% 
+            mutate(study = "study 1") %>%
+            # anonymize
+            select(-rand, -subject_name) %>%
+            # put in order
+            select(study, date, researcher, country, site, religion, subject_id,
+                   s1_var_demo, s1_var_pv, s1_var_abs, s1_var_spev, s1_var_other), 
+          "../data/study1_byquestion.csv")
+
+write_csv(d1_4 %>%
+            select(study, date, researcher, country, site, religion, subject_id,
+                   starts_with("subject_"), servicesperweek, specialrole,
+                   starts_with("pv_score"), starts_with("abs_score"),
+                   starts_with("spev_score"), starts_with("other_score")), 
+          "../data/study1.csv")
 ```
 
 ## Recoded dataset
@@ -215,7 +230,7 @@ d1r_2 <- d1r_2 %>% select(-subject_name)
 d1r_3 <- d1r_2 %>%
   select(researcher, country, site, religion, coder, subject_id) %>%
   # score spiritual experiences
-  full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_spirit)) %>%
+  full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_spev)) %>%
               rename(spev_score = score)) %>%
   # score other extraordinary experiences
   full_join(score_fun(d1r_2 %>% select(country, subject_id, s1_var_other)) %>%
@@ -243,8 +258,16 @@ d1r_4 <- d1r_3 %>%
 
 ```{r}
 # export csvs
-write_csv(d1r_2, "../data/study1r_byquestion.csv")
-write_csv(d1r_4, "../data/study1r.csv")
-```
+write_csv(d1r_2 %>% 
+            mutate(study = "study 1") %>%
+            # put in order
+            select(study, researcher, coder, country, site, religion, subject_id,
+                   s1_var_spev, s1_var_other), 
+          "../data/study1r_byquestion.csv")
 
+write_csv(d1r_4 %>%
+            select(study, researcher, coder, country, site, religion, subject_id,
+                   starts_with("spev_score"), starts_with("other_score")), 
+          "../data/study1r.csv")
+```
 

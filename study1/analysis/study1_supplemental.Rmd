@@ -27,14 +27,14 @@ d1 %>% filter(!is.na(pv_score_std),
               !is.na(spev_score_std)) %>% 
   distinct(subject_id) %>%
   left_join(d1_byquestion %>%
-              select(subject_id, s1_var_por, s1_var_abs, 
-                     s1_var_spirit, s1_var_other) %>%
+              select(subject_id, s1_var_pv, s1_var_abs, 
+                     s1_var_spev, s1_var_other) %>%
               distinct()) %>%
   gather(question, response, -subject_id) %>%
   mutate(scale = case_when(
-    question %in% s1_var_por ~ "Porosity Vignettes",
+    question %in% s1_var_pv ~ "Porosity Vignettes",
     question %in% s1_var_abs ~ "Absorption",
-    question %in% s1_var_spirit ~ "Spiritual Events",
+    question %in% s1_var_spev ~ "Spiritual Events",
     question %in% s1_var_other ~ "Other Extraordinary Events")) %>%
   count(scale, response) %>%
   group_by(scale) %>%
@@ -49,14 +49,14 @@ d1 %>% filter(!is.na(pv_score_std),
               !is.na(spev_score_std)) %>% 
   distinct(subject_id) %>%
   left_join(d1_byquestion %>%
-              select(subject_id, s1_var_por, s1_var_abs, 
-                     s1_var_spirit, s1_var_other) %>%
+              select(subject_id, s1_var_pv, s1_var_abs, 
+                     s1_var_spev, s1_var_other) %>%
               distinct() %>%
               gather(question, response, -subject_id)) %>%
   mutate(scale = case_when(
-    question %in% s1_var_por ~ "Porosity Vignettes",
+    question %in% s1_var_pv ~ "Porosity Vignettes",
     question %in% s1_var_abs ~ "Absorption",
-    question %in% s1_var_spirit ~ "Spiritual Events",
+    question %in% s1_var_spev ~ "Spiritual Events",
     question %in% s1_var_other ~ "Other Extraordinary Events")) %>%
   count(scale, subject_id, response) %>%
   filter(is.na(response)) %>%
@@ -74,7 +74,7 @@ d_alpha_spirit <- data.frame()
 for(i in c(levels(d1$country), "ALL")){
   res <- data.frame(country = i, 
                     alpha = alpha_fun(d1_byquestion, 
-                                      which_vars = s1_var_spirit,
+                                      which_vars = s1_var_spev,
                                       which_country = i))
   d_alpha_spirit <- bind_rows(d_alpha_spirit, res)
   rm(res)
@@ -98,7 +98,7 @@ d_alpha_por <- data.frame()
 for(i in c(levels(d1$country), "ALL")){
   res <- data.frame(country = i, 
                     alpha = alpha_fun(d1_byquestion, 
-                                      which_vars = s1_var_por,
+                                      which_vars = s1_var_pv,
                                       which_country = i))
   d_alpha_por <- bind_rows(d_alpha_por, res)
   rm(res)
@@ -139,9 +139,9 @@ bind_rows(d_alpha_por %>% mutate(scale = "Porosity Vignettes"),
 
 ```{r, include = F}
 df_all <- data.frame()
-for(i in s1_var_spirit){
+for(i in s1_var_spev){
   df_temp <- score_fun(df = d1_byquestion %>% 
-                         select(country, subject_id, s1_var_spirit), 
+                         select(country, subject_id, s1_var_spev), 
                        var_omit = i) %>%
     mutate(omitted = i)
   df_all <- bind_rows(df_temp, df_all)
@@ -202,9 +202,9 @@ reg_check_fun <- function(df, var_omit){
 
 ```{r}
 reg_check_df <- data.frame()
-for(i in s1_var_spirit){
+for(i in s1_var_spev){
   temp_df <- reg_check_fun(df = d1_byquestion %>% 
-                             select(country, subject_id, s1_var_spirit), 
+                             select(country, subject_id, s1_var_spev), 
                            var_omit = i)
   reg_check_df <- bind_rows(reg_check_df, temp_df)
 }
@@ -213,14 +213,14 @@ for(i in s1_var_spirit){
 ```{r, fig.width = 4, fig.asp = 0.7}
 reg_check_df %>%
   full_join(reg_check_fun(df = d1_byquestion %>% 
-                            select(country, subject_id, s1_var_spirit), 
+                            select(country, subject_id, s1_var_spev), 
                           var_omit = NA_character_) %>%
               mutate(omitted = "ALL VARIABLES INCLUDED")) %>%
   mutate(mod_type = case_when(omitted == "ALL VARIABLES INCLUDED" ~ "all",
                               TRUE ~ "test"),
          signif_cat = ifelse(signif == "", F, T),
          omitted = factor(omitted, 
-                          levels = c("ALL VARIABLES INCLUDED", s1_var_spirit)),
+                          levels = c("ALL VARIABLES INCLUDED", s1_var_spev)),
          param = recode_factor(param,
                                "pv_score_std" = "Porosity Vignettes",
                                "abs_score_std" = "Absorption",
@@ -267,9 +267,9 @@ XX BOOKMARK
 
 ```{r}
 # reg_brms_check_df <- data.frame()
-# for(i in s1_var_spirit){
+# for(i in s1_var_spev){
 #   temp_df <- reg_brms_check_fun(df = d1_byquestion %>%
-#                                   select(country, subject_id, s1_var_spirit),
+#                                   select(country, subject_id, s1_var_spev),
 #                                 var_omit = i)
 #   reg_brms_check_df <- bind_rows(reg_brms_check_df, temp_df)
 #   saveRDS(reg_brms_check_df, "./models/reg_brms_check_df.RDS")
@@ -281,7 +281,7 @@ reg_brms_check_df <- readRDS("./models/reg_brms_check_df.RDS")
 
 ```{r}
 # reg_brms_check_all <- reg_brms_check_fun(
-#   df = d1_byquestion %>% select(country, subject_id, s1_var_spirit),
+#   df = d1_byquestion %>% select(country, subject_id, s1_var_spev),
 #   var_omit = NA_character_)
 # 
 # saveRDS(reg_brms_check_all, "./models/reg_brms_check_all.RDS")
@@ -299,7 +299,7 @@ reg_brms_check_df %>%
                                "abs_score_std" = "Absorption",
                                "pv_score_std:abs_score_std" = "Interaction"),
          omitted = factor(omitted, 
-                          levels = c("ALL VARIABLES INCLUDED", s1_var_spirit))) %>%
+                          levels = c("ALL VARIABLES INCLUDED", s1_var_spev))) %>%
   mutate(mod_type = case_when(omitted == "ALL VARIABLES INCLUDED" ~ "all",
                               TRUE ~ "test")) %>%
   ggplot(aes(x = b, y = reorder(omitted, desc(omitted)),
@@ -343,7 +343,7 @@ contrasts(d1r$religion) <- contrasts_religion
 ```{r}
 # omit subjects with no data from interviewers (all NAs)
 s1_subj_int_nodata <- d1_byquestion %>% 
-  select(subject_id, s1_var_spirit, s1_var_other) %>%
+  select(subject_id, s1_var_spev, s1_var_other) %>%
   gather(question, response, -subject_id) %>%
   count(subject_id, response) %>%
   filter(is.na(response), n == 29) %>%
@@ -351,7 +351,7 @@ s1_subj_int_nodata <- d1_byquestion %>%
 
 # omit subjects with no data from coders (all NAs)
 s1_subj_cod_nodata <- d1r_byquestion %>% 
-  select(subject_id, s1_var_spirit, s1_var_other) %>%
+  select(subject_id, s1_var_spev, s1_var_other) %>%
   gather(question, response, -subject_id) %>%
   count(subject_id, response) %>%
   filter(is.na(response), n == 29) %>%
@@ -363,12 +363,12 @@ d1r_irr <- full_join(
   d1_byquestion %>% 
     filter(!subject_id %in% c(s1_subj_int_nodata$subject_id, 
                               s1_subj_cod_nodata$subject_id)) %>%
-    select(country, site, religion, subject_id, s1_var_spirit, s1_var_other) %>%
+    select(country, site, religion, subject_id, s1_var_spev, s1_var_other) %>%
     gather(question, response, -c(country, site, religion, subject_id)),
   d1r_byquestion %>% 
     filter(!subject_id %in% c(s1_subj_int_nodata$subject_id, 
                               s1_subj_cod_nodata$subject_id)) %>%
-    select(country, site, religion, subject_id, s1_var_spirit, s1_var_other) %>%
+    select(country, site, religion, subject_id, s1_var_spev, s1_var_other) %>%
     gather(question, recoded, -c(country, site, religion, subject_id))) %>%
   mutate(agree = case_when(is.na(recoded) & is.na(response) ~ NA_real_,
                            is.na(recoded) | is.na(response) ~ 0,
@@ -376,8 +376,8 @@ d1r_irr <- full_join(
                            recoded == response ~ 1,
                            recoded != response ~ 0,
                            TRUE ~ NA_real_),
-         question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
-         scale = case_when(question %in% s1_var_spirit ~ "spiritual experiences",
+         question = factor(question, levels = c(s1_var_spev, s1_var_other)),
+         scale = case_when(question %in% s1_var_spev ~ "spiritual experiences",
                            question %in% s1_var_other ~ "other experiences",
                            TRUE ~ NA_character_),
          scale = factor(scale, 
@@ -427,7 +427,7 @@ s1r_perag_df %>%
 
 ```{r}
 s1r_icc_df <- data.frame(question = character(), icc = numeric())
-for(i in c(s1_var_spirit, s1_var_other)){
+for(i in c(s1_var_spev, s1_var_other)){
   temp_icc <- icc_fun(d1r_irr, var_name = i, which_model = "oneway")
   temp_res <- data.frame(question = i, icc = temp_icc)
   s1r_icc_df <- full_join(s1r_icc_df, temp_res)
@@ -435,7 +435,7 @@ for(i in c(s1_var_spirit, s1_var_other)){
 }
 
 s1r_icc_df <- s1r_icc_df %>%
-  mutate(question = factor(question, levels = c(s1_var_spirit, s1_var_other)),
+  mutate(question = factor(question, levels = c(s1_var_spev, s1_var_other)),
          reliability = case_when(icc < 0.5 ~ "poor",
                                  icc < 0.75 ~ "moderate",
                                  icc < 0.9 ~ "good", 
@@ -444,7 +444,7 @@ s1r_icc_df <- s1r_icc_df %>%
          reliability = factor(reliability, 
                               levels = c("poor", "moderate", 
                                          "good", "excellent")),
-         scale = case_when(question %in% s1_var_spirit ~ "spiritual experiences",
+         scale = case_when(question %in% s1_var_spev ~ "spiritual experiences",
                            question %in% s1_var_other ~ "other experiences",
                            TRUE ~ NA_character_),
          scale = factor(scale, 
@@ -489,11 +489,11 @@ s1_icc_poor <- s1r_icc_df$question[s1r_icc_df$reliability == "poor"] %>%
 ```{r}
 # make dataset omitting 4 items with "poor" ICC from spiritual experiences
 d1r_mod <- score_fun(d1r_byquestion %>% 
-                       select(country, subject_id, !!s1_var_spirit),
+                       select(country, subject_id, !!s1_var_spev),
                      var_omit = s1_icc_poor) %>%
   rename(spirit_mod_recoded = score) %>%
   full_join(score_fun(d1_byquestion %>%
-                        select(country, subject_id, !!s1_var_spirit),
+                        select(country, subject_id, !!s1_var_spev),
                       var_omit = s1_icc_poor) %>%
               rename(spirit_mod_score = score)) %>%
   mutate(spirit_mod_recoded_std = scale(spirit_mod_recoded),

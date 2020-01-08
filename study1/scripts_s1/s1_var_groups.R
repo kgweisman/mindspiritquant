@@ -18,7 +18,7 @@ s1_var_porvig <- c("hurtwfeelings_anger", "hurtwthoughts_anger",
 
 s1_var_pordir <- c("thoughtsharmppldirectly", "spiritsusethoughtsharm")
 
-s1_var_por <- c(s1_var_porvig, s1_var_pordir)
+s1_var_pv <- c(s1_var_porvig, s1_var_pordir)
 
 # absorption
 s1_var_abs <- c("childexp_abs", "forgetsurrounding_abs", "poeticlanguage_abs", 
@@ -36,7 +36,7 @@ s1_var_abs <- c("childexp_abs", "forgetsurrounding_abs", "poeticlanguage_abs",
 # don't forget about abs_score!
 
 # spiritual experience
-s1_var_spirit <- c("godviapeople", "godviascript", "godviamind", "godvoxaloud", 
+s1_var_spev <- c("godviapeople", "godviascript", "godviamind", "godvoxaloud", 
                    "godcommpics", "godviavisions", "godviadreams", 
                    "godguideviaknowing", "godguideviasensations", 
                    "godviabodyexperiences", "godsenseplaceinbody",  
@@ -60,7 +60,7 @@ s1_var_scid <- c("specialmessagenotgod_scid", "threatening_scid",
 
 
 # recoded dataset
-s1r_var_spirit <- s1_var_spirit %>%
+s1r_var_spev <- s1_var_spev %>%
   gsub("godviavisions", "godviavision", .) %>%
   gsub("godguideviaknowing", "godgvk0wing", .) %>%
   gsub("godguideviasensations", "godgvsensation", .) %>%

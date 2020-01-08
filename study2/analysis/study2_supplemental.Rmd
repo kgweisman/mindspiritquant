@@ -134,6 +134,38 @@ bind_rows(d_alpha_abs %>% mutate(scale = "Absorption"),
 
 # Primary analysis, by country
 
+## Spiritual Events
+
+```{r}
+r1_spev_us <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "US"))
+summary(r1_spev_us)
+```
+
+```{r}
+r1_spev_gh <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Ghana"))
+summary(r1_spev_gh)
+```
+
+```{r}
+r1_spev_th <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Thailand"))
+summary(r1_spev_th)
+```
+
+```{r}
+r1_spev_ch <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "China"))
+summary(r1_spev_ch)
+```
+
+```{r}
+r1_spev_vt <- lm(spev_score_std2 ~ abs_score_std2, 
+                 d2 %>% filter(subj %in% s2_sub, country == "Vanuatu"))
+summary(r1_spev_vt)
+```
+
 ## Daily Spiritual Experiences
 
 ```{r}
@@ -166,38 +198,6 @@ r1_dse_vt <- lm(dse_score_std2 ~ abs_score_std2,
 summary(r1_dse_vt)
 ```
 
-
-## Spiritual Events
-
-```{r}
-r1_spev_us <- lm(spev_score_std2 ~ abs_score_std2, 
-                 d2 %>% filter(subj %in% s2_sub, country == "US"))
-summary(r1_spev_us)
-```
-
-```{r}
-r1_spev_gh <- lm(spev_score_std2 ~ abs_score_std2, 
-                 d2 %>% filter(subj %in% s2_sub, country == "Ghana"))
-summary(r1_spev_gh)
-```
-
-```{r}
-r1_spev_th <- lm(spev_score_std2 ~ abs_score_std2, 
-                 d2 %>% filter(subj %in% s2_sub, country == "Thailand"))
-summary(r1_spev_th)
-```
-
-```{r}
-r1_spev_ch <- lm(spev_score_std2 ~ abs_score_std2, 
-                 d2 %>% filter(subj %in% s2_sub, country == "China"))
-summary(r1_spev_ch)
-```
-
-```{r}
-r1_spev_vt <- lm(spev_score_std2 ~ abs_score_std2, 
-                 d2 %>% filter(subj %in% s2_sub, country == "Vanuatu"))
-summary(r1_spev_vt)
-```
 
 ## Model comparison
 

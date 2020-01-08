@@ -76,7 +76,8 @@ d2_demo <- read_csv("../data/d2_demo.csv") %>%
          # demo_ses recoded so that -2 = much poorer, +2 = much richer
          demo_ses = demo_ses - 3,
          # demo_howr recoded so that -2 = strongly disagree, +2 = strongly agree
-         demo_howr = demo_howr - 3)
+         demo_howr = demo_howr - 3,
+         country = factor(country, levels = levels_country))
 ```
 
 ```{r}
@@ -177,26 +178,6 @@ r1i_spev <- lmer(spev_score_std ~ abs_score_std +
 
 ## Primary analysis
 
-### Daily Spiritual Experiences
-
-```{r}
-r1_dse <- lmer(dse_score_std ~ abs_score_std + 
-                 (1 + abs_score_std || country), d2)
-summary(r1_dse)
-```
-
-```{r}
-rsquared(r1_dse)
-```
-
-```{r}
-regtab_fun(r1_dse) %>% regtab_style_fun(row_emph = 2)
-```
-
-```{r}
-regtab_ran_fun(r1_dse) %>% regtab_style_fun()
-```
-
 ### Spiritual Events
 
 ```{r}
@@ -217,33 +198,28 @@ regtab_fun(r1_spev) %>% regtab_style_fun(row_emph = 2)
 regtab_ran_fun(r1_spev) %>% regtab_style_fun()
 ```
 
-## Bayesian regression
-
 ### Daily Spiritual Experiences
 
 ```{r}
-# r1_dse_bayes <- brm(dse_score_std ~ abs_score_std +
-#                       (1 + abs_score_std || country), d2,
-#                     control = list(adapt_delta = 0.99),
-#                     seed = 1234, cores = 4, chains = 4)
-# saveRDS(r1_dse_bayes, "./models/r1_dse_bayes.RDS")
-
-r1_dse_bayes <- readRDS("./models/r1_dse_bayes.RDS")
-
-summary(r1_dse_bayes)
+r1_dse <- lmer(dse_score_std ~ abs_score_std + 
+                 (1 + abs_score_std || country), d2)
+summary(r1_dse)
 ```
 
 ```{r}
-bayes_R2(r1_dse_bayes)
+rsquared(r1_dse)
 ```
 
 ```{r}
-regtab_fun(r1_dse_bayes) %>% regtab_style_fun(row_emph = 2)
+regtab_fun(r1_dse) %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
-regtab_ran_fun(r1_dse_bayes) %>% regtab_style_fun()
+regtab_ran_fun(r1_dse) %>% regtab_style_fun()
 ```
+
+
+## Bayesian regression
 
 ### Spiritual Events
 
@@ -271,26 +247,34 @@ regtab_fun(r1_spev_bayes) %>% regtab_style_fun(row_emph = 2)
 regtab_ran_fun(r1_spev_bayes) %>% regtab_style_fun()
 ```
 
-## Country as fixed effect
-
 ### Daily Spiritual Experiences
 
 ```{r}
-r2_dse <- lm(dse_score_std ~ abs_score_std * country, d2)
-summary(r2_dse)
+# r1_dse_bayes <- brm(dse_score_std ~ abs_score_std +
+#                       (1 + abs_score_std || country), d2,
+#                     control = list(adapt_delta = 0.99),
+#                     seed = 1234, cores = 4, chains = 4)
+# saveRDS(r1_dse_bayes, "./models/r1_dse_bayes.RDS")
+
+r1_dse_bayes <- readRDS("./models/r1_dse_bayes.RDS")
+
+summary(r1_dse_bayes)
 ```
 
 ```{r}
-rsquared(r2_dse)
+bayes_R2(r1_dse_bayes)
 ```
 
 ```{r}
-regtab_fun(r2_dse) %>% regtab_style_fun(row_emph = 2)
+regtab_fun(r1_dse_bayes) %>% regtab_style_fun(row_emph = 2)
 ```
 
 ```{r}
-beta_fun(r2_dse) %>% beta_style_fun()
+regtab_ran_fun(r1_dse_bayes) %>% regtab_style_fun()
 ```
+
+
+## Country as fixed effect
 
 ### Spiritual Events
 
@@ -309,5 +293,25 @@ regtab_fun(r2_spev) %>% regtab_style_fun(row_emph = 2)
 
 ```{r}
 beta_fun(r2_spev) %>% beta_style_fun()
+```
+
+
+### Daily Spiritual Experiences
+
+```{r}
+r2_dse <- lm(dse_score_std ~ abs_score_std * country, d2)
+summary(r2_dse)
+```
+
+```{r}
+rsquared(r2_dse)
+```
+
+```{r}
+regtab_fun(r2_dse) %>% regtab_style_fun(row_emph = 2)
+```
+
+```{r}
+beta_fun(r2_dse) %>% beta_style_fun()
 ```
 
