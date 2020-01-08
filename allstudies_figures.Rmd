@@ -26,6 +26,20 @@ source("../../scripts_general/data_load.R")
 ```
 
 ```{r}
+rsq_fun <- function(reg){
+  reg_class <- class(reg)
+  res <- rsquared(reg)
+  
+  if (grepl("lmerMod", reg_class)) {
+    rsq <- res$Conditional
+  } else {
+    rsq <- res$R.squared
+  }
+  return(rsq)
+}
+```
+
+```{r}
 d_all <- d1 %>%
   select(study, country, site, religion, subject_id, 
          pv_score, abs_score, spev_score) %>%
@@ -156,19 +170,6 @@ fig_0
 
 ### Study 4
 
-```{r}
-rsq_fun <- function(reg){
-  reg_class <- class(reg)
-  res <- rsquared(reg)
-  
-  if (grepl("lmerMod", reg_class)) {
-    rsq <- res$Conditional
-  } else {
-    rsq <- res$R.squared
-  }
-  return(rsq)
-}
-```
 
 ```{r}
 d_sum_s4 <- d_all %>%
@@ -1454,4 +1455,32 @@ d_all %>%
        color = "Country")
 ```
 
+
+# Histograms of absorption
+
+## Study 1
+
+```{r, fig.width = 6}
+ggplot(d_all %>% filter(study != "Study 3"), 
+       aes(x = abs_score * 34)) +
+  facet_grid(study ~ country, scales = "free_y") +
+  geom_histogram(binwidth = 2) +
+  scale_x_continuous(breaks = seq(0, 34, 5)) +
+  labs(x = "Absorption score (range: 0-34)", y = "Number of participants")
+```
+
+```{r}
+d_sum_abs <- d_all %>%
+  filter(study != "Study 3") %>%
+  group_by(study, country, religion) %>%
+  mutate(abs_score = abs_score * 34) %>%
+  summarise_at(vars(abs_score),
+               funs(mean = mean(., na.rm = T), sd = sd(., na.rm = T))) %>%
+  ungroup()
+```
+
+```{r}
+d_sum_abs %>%
+  kable(digits = 2)
+```
 
