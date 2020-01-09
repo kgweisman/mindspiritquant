@@ -1,0 +1,137 @@
+---
+title: "Final datasets"
+subtitle: "Luhrmann, Weisman, et al."
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    toc_float: true
+---
+
+In this notebook, we create our final datasets for publication.
+
+```{r}
+source("./scripts_general/dependencies.R")
+source("./scripts_general/custom_funs.R")
+source("./scripts_general/var_recode_contrast.R")
+source("./study1/scripts_s1/s1_var_groups.R")
+source("./study2/scripts_s2/s2_var_groups.R")
+source("./study3/scripts_s3/s3_var_groups.R")
+source("./study4/scripts_s4/s4_var_groups.R")
+```
+
+```{r}
+setwd("./study1/analysis/")
+source("../../scripts_general/data_load.R")
+```
+
+```{r}
+d1_final <- d1 %>%
+  rename(subject_servicesperweek = servicesperweek,
+         subject_specialrole = specialrole) %>%
+  select(study, country, site, religion, subject_id, researcher, date,
+         subject_gender:subject_specialrole, 
+         spev_score, pv_score, abs_score)
+```
+
+```{r}
+# NOTE SWITCH IN STUDY ORDER: study 2 became study 3 and vice versa
+d2_demo <- read_csv("./study2/data/d2_demo.csv")
+
+d3_final <- d2 %>%
+  full_join(d2_demo) %>%
+  rename(subject_id = subj,
+         subject_afford = demo_affr,
+         subject_religiosity = demo_howr,
+         subject_ses = demo_ses,
+         subject_tongues = demo_tung,
+         subject_church = demo_chur,
+         subject_ethnicity = demo_ethn,
+         subject_major = demo_maj,
+         subject_occupation_parent = demo_pocc,
+         subject_religion = demo_rlgn,
+         subject_gender = demo_sex,
+         subject_age = demo_age) %>%
+  select(study, country, subject_id, 
+         subject_gender, subject_age, subject_ethnicity, 
+         subject_afford, subject_ses, subject_occupation_parent, subject_major,
+         subject_religion, subject_religiosity, subject_church, subject_tongues,
+         spev_score, dse_score, abs_score) %>%
+  mutate(study = "study 3")
+```
+
+```{r}
+# NOTE SWITCH IN STUDY ORDER: study 2 became study 3 and vice versa
+d3_demo <- read_csv("./study3/data/d_demo.csv")
+
+d2_final <- d3 %>%
+  full_join(d3_demo) %>%
+  rename(country = epi_ctry,
+         religion = epi_sample,
+         subject_id = epi_subj,
+         spev_score = spirit_score,
+         subject_gender = epi_demo_sex,
+         subject_age = epi_demo_age,
+         subject_education = epi_demo_edu,
+         subject_education_text = epi_demo_edu_8_TEXT,
+         subject_occupation = epi_demo_occ,
+         subject_occupation_parent = epi_demo_pocc,
+         subject_ethnicity = epi_demo_ethn,
+         subject_religion = epi_demo_rlgn,
+         subject_religion_parent = epi_demo_prel,
+         subject_church = epi_demo_chur,
+         subject_urban_rural = epi_demo_ubru,
+         subject_ses = epi_demo_ses_num,
+         subject_religiosity = epi_demo_howr_num,
+         subject_afford = epi_demo_affr_num,
+         subject_tongues1 = epi_demo_tung_num,
+         subject_tongues2 = epi_demo_ytng_num,
+         order_cb = epi_version,
+         interviewer = epi_whoc,
+         language = epi_inlang) %>%
+  select(study, country, religion, subject_id, 
+         order_cb , interviewer, language,
+         subject_gender, subject_age, subject_ethnicity, 
+         subject_afford, subject_ses, subject_occupation_parent, subject_occupation,
+         subject_education, subject_education_text, subject_urban_rural,
+         subject_religion, subject_religion_parent,
+         subject_religiosity, subject_church, subject_tongues1, subject_tongues2,
+         spev_score, por_score)
+```
+
+```{r}
+d4_demo <- read_csv("./study4/data/d4_demo.csv")
+
+d4_final <- d4 %>%
+  full_join(d4_demo) %>%
+  mutate(study = gsub("study", "Study", study)) %>%
+  rename(subject_id = p7_subj,
+         subject_gender = p7_dem_sex,
+         subject_age = p7_dem_age,
+         subject_occupation_parent = p7_dem_pocc,
+         subject_ethnicity = p7_dem_ethnicity,
+         subject_urban_rural = p7_dem_rur.urb,
+         subject_afford = p7_dem_affrd.basics,
+         subject_ses = p7_dem_ses,
+         subject_religiosity = p7_dem_how.sprt.relg,
+         subject_religion = p7_dem_religion,
+         subject_church = p7_dem_church,
+         subject_tongues = p7_dem_holy.tung.gif,
+         country = p7_ctry) %>%
+  select(study, country, subject_id, 
+         subject_gender, subject_age, subject_ethnicity, 
+         subject_afford, subject_ses, subject_occupation_parent,
+         subject_urban_rural,
+         subject_religion, subject_religiosity, subject_church, subject_tongues,
+         spev_score, dse_score, pv_score, por_score, abs_score,
+         hall_score, para_score, cog_score, ctl_score)
+```
+
+```{r}
+# export csvs
+write.csv(d1_final, "./datasets/sense_spirit_study1.csv")
+write.csv(d2_final, "./datasets/sense_spirit_study2.csv")
+write.csv(d3_final, "./datasets/sense_spirit_study3.csv")
+write.csv(d4_final, "./datasets/sense_spirit_study4.csv")
+```
+
