@@ -2,6 +2,7 @@
 */data/*
 */raw data/* 
 */datasets/*
+datasets/*
 *.xls
 *.xlsx
 
