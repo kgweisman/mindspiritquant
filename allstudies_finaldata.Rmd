@@ -129,9 +129,9 @@ d4_final <- d4 %>%
 
 ```{r}
 # export csvs
-write.csv(d1_final, "./datasets/sense_spirit_study1.csv")
-write.csv(d2_final, "./datasets/sense_spirit_study2.csv")
-write.csv(d3_final, "./datasets/sense_spirit_study3.csv")
-write.csv(d4_final, "./datasets/sense_spirit_study4.csv")
+write.csv(d1_final, "./datasets/sense_spirit_study1.csv", row.names = F)
+write.csv(d2_final, "./datasets/sense_spirit_study2.csv", row.names = F)
+write.csv(d3_final, "./datasets/sense_spirit_study3.csv", row.names = F)
+write.csv(d4_final, "./datasets/sense_spirit_study4.csv", row.names = F)
 ```
 
