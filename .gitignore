@@ -1,6 +1,7 @@
 # ignore any data
 */data/*
 */raw data/* 
+*/datasets/*
 *.xls
 *.xlsx
 
