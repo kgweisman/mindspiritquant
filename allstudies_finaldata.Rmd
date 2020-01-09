@@ -96,7 +96,8 @@ d2_final <- d3 %>%
          subject_education, subject_education_text, subject_urban_rural,
          subject_religion, subject_religion_parent,
          subject_religiosity, subject_church, subject_tongues1, subject_tongues2,
-         spev_score, por_score)
+         spev_score, por_score) %>%
+  mutate(study = "study 2")
 ```
 
 ```{r}
@@ -134,4 +135,162 @@ write.csv(d2_final, "./datasets/sense_spirit_study2.csv", row.names = F)
 write.csv(d3_final, "./datasets/sense_spirit_study3.csv", row.names = F)
 write.csv(d4_final, "./datasets/sense_spirit_study4.csv", row.names = F)
 ```
+
+# Checks
+
+```{r}
+# study 1
+d1_final %>% 
+  filter(!is.na(spev_score), !is.na(pv_score), !is.na(abs_score)) %>% 
+  distinct(subject_id) %>% count()
+
+# study 2 (formerly study 3)
+d2_final %>% 
+  filter(!is.na(spev_score), !is.na(por_score)) %>%
+  distinct(subject_id, .keep_all = T) %>% count(religion)
+
+# study 3 (formerly study 2)
+d3_final %>% 
+  filter(!is.na(spev_score), !is.na(dse_score), !is.na(abs_score)) %>%
+  distinct(subject_id) %>% count()
+
+# study 4
+d4_final %>% 
+  filter(!is.na(spev_score), !is.na(dse_score), 
+         !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>% 
+  distinct(subject_id) %>% count()
+```
+
+```{r}
+r1 <- lmer(spev_score ~ pv_score * abs_score + (1 | country/site/religion),
+           d1_final %>% mutate_at(vars(ends_with("_score")), funs(scale)))
+regtab_fun(r1, por_var = "pv_score", abs_var = "abs_score") %>% regtab_style_fun()
+```
+
+```{r}
+r2a <- lmer(spev_score ~ por_score + (1 | country/religion),
+            d2_final %>% mutate_at(vars(ends_with("_score")), funs(scale)))
+regtab_fun(r2a, por_var = "por_score") %>% regtab_style_fun()
+```
+
+```{r}
+r2b <- lmer(spev_score ~ por_score + (1 | country),
+            d2_final %>%
+              filter(religion == "charismatic") %>%
+              mutate_at(vars(ends_with("_score")), funs(scale)))
+regtab_fun(r2b, por_var = "por_score") %>% regtab_style_fun()
+```
+
+```{r}
+r3a <- lmer(spev_score ~ abs_score + (1 + abs_score || country),
+            d3_final %>% mutate_at(vars(ends_with("_score")), funs(scale)))
+regtab_fun(r3a, abs_var = "abs_score") %>% regtab_style_fun()
+```
+
+```{r}
+r3b <- lmer(dse_score ~ abs_score + (1 + abs_score || country),
+            d3_final %>% mutate_at(vars(ends_with("_score")), funs(scale)))
+regtab_fun(r3b, abs_var = "abs_score") %>% regtab_style_fun()
+```
+
+```{r}
+r4a <- lmer(spex ~ pv_score * spirit_scale + (1 | country/subject_id),
+            d4_final %>% 
+              filter(!is.na(spev_score), !is.na(dse_score), 
+                     !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>%
+              mutate_at(vars(ends_with("_score")), funs(scale)) %>%
+              gather(spirit_scale, spex, c(spev_score, dse_score)),
+            contrasts = list(spirit_scale = "contr.sum"))
+regtab_fun(r4a, por_var = "pv_score") %>% regtab_style_fun()
+```
+
+```{r}
+r4b <- lmer(spex ~ por_score * spirit_scale + (1 | country/subject_id),
+            d4_final %>% 
+              filter(!is.na(spev_score), !is.na(dse_score), 
+                     !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>%
+              mutate_at(vars(ends_with("_score")), funs(scale)) %>%
+              gather(spirit_scale, spex, c(spev_score, dse_score)),
+            contrasts = list(spirit_scale = "contr.sum"))
+regtab_fun(r4b, por_var = "por_score") %>% regtab_style_fun()
+```
+
+```{r}
+r4c <- lmer(spex ~ abs_score * spirit_scale + (1 | country/subject_id),
+            d4_final %>% 
+              filter(!is.na(spev_score), !is.na(dse_score), 
+                     !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>%
+              mutate_at(vars(ends_with("_score")), funs(scale)) %>%
+              gather(spirit_scale, spex, c(spev_score, dse_score)),
+            contrasts = list(spirit_scale = "contr.sum"))
+regtab_fun(r4c, abs_var = "abs_score") %>% regtab_style_fun()
+```
+
+```{r}
+# r4d_pv_us
+# r4d_pv_gh ...
+
+# r4d_por_us ...
+
+# r4d_abs_us ...
+```
+
+```{r}
+d4_final_r4e <- d4_final %>%
+  filter(!is.na(spev_score), !is.na(dse_score),
+         !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>%
+  mutate_at(vars(ends_with("_score")), funs(scale)) %>%
+  mutate(country = factor(country, levels = levels_country)) %>%
+  gather(predictor, predictor_score, 
+         c(pv_score, por_score, abs_score, cog_score, ctl_score)) %>%
+  mutate(predictor = factor(predictor))
+
+contrasts(d4_final_r4e$country) <- contrasts_country
+contrasts(d4_final_r4e$predictor) <- cbind(a = c(2, -3, -3, 2, 2),
+                                           b = c(-2, 0, 0, 1, 1),
+                                           c = c(0, 0, 0, 1, -1),
+                                           d = c(0, 1, -1, 0, 0))
+```
+
+```{r}
+r4e_spev <- lm(spev_score ~ predictor_score * predictor * country, d4_final_r4e)
+regtab_fun(r4e_spev) %>% regtab_style_fun(row_emph = 11)
+```
+
+```{r}
+r4e_dse <- lm(dse_score ~ predictor_score * predictor * country, d4_final_r4e)
+regtab_fun(r4e_dse) %>% regtab_style_fun(row_emph = 11)
+```
+
+```{r}
+r4f_pv <- lmer(spex ~ pv_score * abs_score * spirit_scale 
+                 + (1 | country/subject_id),
+                 d4_final %>% 
+              filter(!is.na(spev_score), !is.na(dse_score), 
+                     !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>%
+              mutate_at(vars(ends_with("_score")), funs(scale)) %>%
+              gather(spirit_scale, spex, c(spev_score, dse_score)),
+            contrasts = list(spirit_scale = "contr.sum"))
+regtab_fun(r4f_pv) %>% regtab_style_fun()
+```
+
+```{r}
+r4f_por <- lmer(spex ~ por_score * abs_score * spirit_scale 
+                 + (1 | country/subject_id),
+                 d4_final %>% 
+              filter(!is.na(spev_score), !is.na(dse_score), 
+                     !is.na(pv_score), !is.na(por_score), !is.na(abs_score)) %>%
+              mutate_at(vars(ends_with("_score")), funs(scale)) %>%
+              gather(spirit_scale, spex, c(spev_score, dse_score)),
+            contrasts = list(spirit_scale = "contr.sum"))
+regtab_fun(r4f_por) %>% regtab_style_fun()
+```
+
+```{r}
+r4g_abs <- lm((abs_score/34) ~ country, d4_final); rsquared(r4g_abs)
+r4g_pv <- lm((pv_score/3) ~ country, d4_final); rsquared(r4g_pv)
+r4g_por <- lm((por_score/3) ~ country, d4_final); rsquared(r4g_por)
+```
+
+
 
