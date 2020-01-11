@@ -117,7 +117,15 @@ d4 %>%
 ```
 
 ```{r}
+set.seed(1234)
+
 d4_demo <- read_csv("../data/d4_demo.csv") %>%
+  mutate(rand = sample(100000, size = nrow(.))) %>%
+  group_by(p7_subj) %>%
+  # select one of two "batches" of data entry
+  top_n(1, rand) %>%
+  ungroup() %>%
+  select(-rand) %>%
   mutate(male = ifelse(p7_dem_sex == 1, 1, 0),
          female = ifelse(p7_dem_sex == 2, 1, 0),
          subject_age = ifelse(p7_dem_age > 120, NA_real_, p7_dem_age),
@@ -167,7 +175,7 @@ d4_demo <- read_csv("../data/d4_demo.csv") %>%
 ```
 
 ```{r}
-d4_demo %>%
+      d4_demo %>%
   group_by(p7_ctry) %>%
   summarise(n = n(),
             age_range = paste0(min(subject_age, na.rm = T), "-",

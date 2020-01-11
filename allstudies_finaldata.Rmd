@@ -31,7 +31,8 @@ d1_final <- d1 %>%
          subject_specialrole = specialrole) %>%
   select(study, country, site, religion, subject_id, researcher, date,
          subject_gender:subject_specialrole, 
-         spev_score, pv_score, abs_score)
+         spev_score, pv_score, abs_score) %>%
+  distinct()
 ```
 
 ```{r}
@@ -39,7 +40,7 @@ d1_final <- d1 %>%
 d2_demo <- read_csv("./study2/data/d2_demo.csv")
 
 d3_final <- d2 %>%
-  full_join(d2_demo) %>%
+  left_join(d2_demo) %>%
   rename(subject_id = subj,
          subject_afford = demo_affr,
          subject_religiosity = demo_howr,
@@ -57,7 +58,8 @@ d3_final <- d2 %>%
          subject_afford, subject_ses, subject_occupation_parent, subject_major,
          subject_religion, subject_religiosity, subject_church, subject_tongues,
          spev_score, dse_score, abs_score) %>%
-  mutate(study = "study 3")
+  mutate(study = "study 3") %>%
+  distinct()
 ```
 
 ```{r}
@@ -65,7 +67,7 @@ d3_final <- d2 %>%
 d3_demo <- read_csv("./study3/data/d_demo.csv")
 
 d2_final <- d3 %>%
-  full_join(d3_demo) %>%
+  left_join(d3_demo) %>%
   rename(country = epi_ctry,
          religion = epi_sample,
          subject_id = epi_subj,
@@ -97,14 +99,22 @@ d2_final <- d3 %>%
          subject_religion, subject_religion_parent,
          subject_religiosity, subject_church, subject_tongues1, subject_tongues2,
          spev_score, por_score) %>%
-  mutate(study = "study 2")
+  mutate(study = "study 2") %>%
+  distinct()
 ```
 
 ```{r}
-d4_demo <- read_csv("./study4/data/d4_demo.csv")
+set.seed(1234)
+d4_demo <- read_csv("./study4/data/d4_demo.csv") %>%
+  mutate(rand = sample(100000, size = nrow(.))) %>%
+  group_by(p7_subj) %>%
+  # select one of two "batches" of data entry
+  top_n(1, rand) %>%
+  ungroup() %>%
+  select(-rand)
 
 d4_final <- d4 %>%
-  full_join(d4_demo) %>%
+  left_join(d4_demo) %>%
   mutate(study = gsub("study", "Study", study)) %>%
   rename(subject_id = p7_subj,
          subject_gender = p7_dem_sex,
@@ -125,7 +135,8 @@ d4_final <- d4 %>%
          subject_urban_rural,
          subject_religion, subject_religiosity, subject_church, subject_tongues,
          spev_score, dse_score, pv_score, por_score, abs_score,
-         hall_score, para_score, cog_score, ctl_score)
+         hall_score, para_score, cog_score, ctl_score) %>%
+  distinct()
 ```
 
 ```{r}
