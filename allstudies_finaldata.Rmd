@@ -47,6 +47,8 @@ d2_demo <- read_csv("./study2/data/d2_demo.csv")
 
 d3_final <- d2 %>%
   left_join(d2_demo) %>%
+  # center likert scale at 0
+  mutate_at(vars(demo_howr, demo_ses), funs(. - 3)) %>%
   rename(subject_id = subj,
          subject_afford = demo_affr,
          subject_religiosity = demo_howr,
