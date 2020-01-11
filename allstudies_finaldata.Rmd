@@ -26,12 +26,18 @@ source("../../scripts_general/data_load.R")
 ```
 
 ```{r}
+# recoded data
+d1r <- read_csv("./study1/data/study1r.csv")
+
 d1_final <- d1 %>%
+  full_join(d1r %>% 
+              select(subject_id, spev_score) %>%
+              rename(spev_recoded_score = spev_score)) %>%
   rename(subject_servicesperweek = servicesperweek,
          subject_specialrole = specialrole) %>%
   select(study, country, site, religion, subject_id, researcher, date,
          subject_gender:subject_specialrole, 
-         spev_score, pv_score, abs_score) %>%
+         spev_score, spev_recoded_score, pv_score, abs_score) %>%
   distinct()
 ```
 
@@ -68,6 +74,8 @@ d3_demo <- read_csv("./study3/data/d_demo.csv")
 
 d2_final <- d3 %>%
   left_join(d3_demo) %>%
+  # correct duplicate entry by hand
+  filter(!(epi_subj == "50807" & is.na(epi_charc))) %>%
   rename(country = epi_ctry,
          religion = epi_sample,
          subject_id = epi_subj,
